@@ -9,6 +9,7 @@ import type {
   Congestion,
   Prediction,
   Offenders as OffendersData,
+  JunctionsFile,
 } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
@@ -18,6 +19,7 @@ import MethodologyModal from "@/components/MethodologyModal";
 import TypeFilter from "@/components/TypeFilter";
 import IntroTour from "@/components/IntroTour";
 import Offenders from "@/components/Offenders";
+import JunctionDetail from "@/components/JunctionDetail";
 import CoverageChart from "@/components/CoverageChart";
 import MonthlyTrend from "@/components/MonthlyTrend";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -36,6 +38,10 @@ export default function Dashboard() {
   const [congestion, setCongestion] = useState<Congestion | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [offenders, setOffenders] = useState<OffendersData | null>(null);
+  const [junctionsData, setJunctionsData] = useState<JunctionsFile | null>(null);
+  const [lens, setLens] = useState<"station" | "junction">("station");
+  const [junctionId, setJunctionId] = useState<string | null>(null);
+  const [showJunctions, setShowJunctions] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [station, setStation] = useState<string | null>(null);
   const [typeIdx, setTypeIdx] = useState<number | null>(null);
@@ -65,13 +71,14 @@ export default function Dashboard() {
     };
     (async () => {
       try {
-        const [s, h, p, c, pr, off] = await Promise.all([
+        const [s, h, p, c, pr, off, jn] = await Promise.all([
           getJSON("/data/summary.json"),
           getJSON("/data/hotspots.json"),
           getJSON("/data/points.json"),
           getJSON("/data/congestion.json"),
           getJSON("/data/prediction.json"),
           getJSON("/data/offenders.json"),
+          getJSON("/data/junctions.json"),
         ]);
         if (!alive) return;
         setSummary(s);
@@ -80,6 +87,7 @@ export default function Dashboard() {
         setCongestion(c);
         setPrediction(pr);
         setOffenders(off);
+        setJunctionsData(jn);
         setLoading(false);
       } catch (e) {
         console.warn("data load failed", e);
@@ -139,10 +147,15 @@ export default function Dashboard() {
 
   const center: [number, number] = summary?.cityCenter ?? [12.97, 77.59];
 
-  const handleSelect = useCallback(
-    (h: Hotspot | null) => setSelectedId(h ? h.id : null),
-    []
-  );
+  const handleSelect = useCallback((h: Hotspot | null) => {
+    setSelectedId(h ? h.id : null);
+    if (h) setJunctionId(null);
+  }, []);
+  const handleLensChange = useCallback((l: "station" | "junction") => {
+    setLens(l);
+    if (l !== "junction") setJunctionId(null);
+    if (l === "junction") setShowJunctions(true);
+  }, []);
   const congestionEvents = useMemo(
     () => congestion?.events ?? [],
     [congestion]
@@ -220,6 +233,23 @@ export default function Dashboard() {
     ? hotspots.find((h) => h.id === selectedId) ?? null
     : null;
 
+  const selectedJunction =
+    junctionId && junctionsData
+      ? junctionsData.junctions.find((j) => j.id === junctionId) ?? null
+      : null;
+
+  const junctionFocus = useMemo<
+    [[number, number], [number, number]] | null
+  >(() => {
+    if (!selectedJunction) return null;
+    const { lat, lng } = selectedJunction;
+    const d = 0.012; // ~1.3 km padding box around the junction
+    return [
+      [lng - d, lat - d],
+      [lng + d, lat + d],
+    ];
+  }, [selectedJunction]);
+
   const listTitle = showForecast
     ? hour >= 0
       ? `Predicted at ${hourLabel(hour)}`
@@ -268,6 +298,7 @@ export default function Dashboard() {
             <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
           )}
           <Toggle on={showLive} set={setShowLive} label="Live" />
+          <Toggle on={showJunctions} set={setShowJunctions} label="Junctions" />
         </div>
       </header>
 
@@ -290,27 +321,42 @@ export default function Dashboard() {
               congestion={congestion}
               onBack={() => setSelectedId(null)}
             />
+          ) : selectedJunction && junctionsData ? (
+            <JunctionDetail
+              j={selectedJunction}
+              radiusM={junctionsData.radiusM}
+              onBack={() => setJunctionId(null)}
+            />
           ) : (
             <>
-              {summary && (
-                <StationFilter
-                  stations={summary.topStations}
-                  active={station}
-                  onSelect={setStation}
-                />
+              {junctionsData && <LensToggle lens={lens} setLens={handleLensChange} />}
+              {lens === "station" ? (
+                <>
+                  {summary && (
+                    <StationFilter
+                      stations={summary.topStations}
+                      active={station}
+                      onSelect={setStation}
+                    />
+                  )}
+                  {summary && (
+                    <TypeFilter
+                      legend={summary.typeLegend}
+                      selected={typeIdx}
+                      onSelect={setTypeIdx}
+                    />
+                  )}
+                  <RankedList
+                    hotspots={displayHotspots}
+                    title={listTitle}
+                    onSelect={setSelectedId}
+                  />
+                </>
+              ) : (
+                junctionsData && (
+                  <JunctionList data={junctionsData} onSelect={setJunctionId} />
+                )
               )}
-              {summary && (
-                <TypeFilter
-                  legend={summary.typeLegend}
-                  selected={typeIdx}
-                  onSelect={setTypeIdx}
-                />
-              )}
-              <RankedList
-                hotspots={displayHotspots}
-                title={listTitle}
-                onSelect={setSelectedId}
-              />
             </>
           )}
         </aside>
@@ -336,9 +382,18 @@ export default function Dashboard() {
                 showCongestion={showCongestion}
                 showLive={showLive}
                 selectedId={selectedId}
-                focusBounds={focusBounds}
+                focusBounds={junctionFocus ?? focusBounds}
                 route={routeZones}
                 onSelect={handleSelect}
+                junctions={junctionsData?.junctions ?? []}
+                showJunctions={showJunctions}
+                selectedJunctionId={junctionId}
+                onSelectJunction={(j) => {
+                  setSelectedId(null);
+                  setLens("junction");
+                  setShowJunctions(true);
+                  setJunctionId(j ? j.id : null);
+                }}
               />
             </>
           )}
@@ -719,6 +774,77 @@ function Legend() {
       <div className="mt-1.5 flex items-center gap-1">
         <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff6e28]" />
         <span>hotspot (size = impact score)</span>
+      </div>
+    </div>
+  );
+}
+
+function LensToggle({
+  lens,
+  setLens,
+}: {
+  lens: "station" | "junction";
+  setLens: (l: "station" | "junction") => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-lg border border-[var(--border)] bg-[var(--panel)] p-1">
+      {(["station", "junction"] as const).map((l) => (
+        <button
+          key={l}
+          onClick={() => setLens(l)}
+          className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+            lens === l
+              ? "bg-amber-500 text-slate-950"
+              : "text-[var(--text-muted)] hover:bg-[var(--chip)]"
+          }`}
+        >
+          {l === "station" ? "Stations" : "Junctions"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function JunctionList({
+  data,
+  onSelect,
+}: {
+  data: JunctionsFile;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
+        Worst junctions
+      </div>
+      <div className="mt-1 text-[11px] text-[var(--text)]">
+        {data.count} managed junctions drive{" "}
+        <span className="font-semibold text-[var(--accent-text)]">
+          {data.pctOfImpact}%
+        </span>{" "}
+        of all parking impact.
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {data.junctions.slice(0, 40).map((j) => (
+          <button
+            key={j.id}
+            onClick={() => onSelect(j.id)}
+            className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-2 text-left hover:bg-[var(--track)] lg:py-1.5"
+          >
+            <span className="w-6 shrink-0 text-xs font-semibold text-[var(--accent-text)]">
+              #{j.rank}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs text-[var(--text)]">
+                {j.name}
+              </span>
+              <span className="block truncate text-[10px] text-[var(--text-faint)]">
+                {fmt(j.count)} violations · peak {hourRange(j.peakHour ?? -1)}
+              </span>
+            </span>
+            <ScoreChip score={j.score} />
+          </button>
+        ))}
       </div>
     </div>
   );
