@@ -507,11 +507,17 @@ export default function Dashboard() {
                       onSelect={setTypeIdx}
                     />
                   )}
-                  <RankedList
-                    hotspots={displayHotspots}
-                    title={listTitle}
-                    onSelect={setSelectedId}
-                  />
+                  {/* Gated on summary like the panels above so the list's
+                      empty state ("No hotspots for this filter") isn't shown
+                      while data is still loading on reload — a genuine empty
+                      filter still shows it once loaded. */}
+                  {summary && (
+                    <RankedList
+                      hotspots={displayHotspots}
+                      title={listTitle}
+                      onSelect={setSelectedId}
+                    />
+                  )}
                 </>
               ) : (
                 junctionsData && (
