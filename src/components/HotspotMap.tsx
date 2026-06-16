@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { ScatterplotLayer } from "@deck.gl/layers";
@@ -9,8 +9,13 @@ import type { Layer, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Hotspot, Point, CongestionEvent } from "@/lib/types";
 
-// Self-contained raster basemap (CARTO dark tiles) — no external style.json fetch,
-// so it renders reliably even behind ad-blockers / flaky networks.
+// Mappls (MapmyIndia) basemap is used on the whitelisted production domain; everywhere
+// else (localhost, previews) and on any load failure we fall back to CARTO so the map
+// always renders.
+const MAPPLS_KEY = process.env.NEXT_PUBLIC_MAPPLS_KEY;
+const MAPPLS_HOSTS = new Set(["raaste.theahmadfaraz.com"]);
+
+// Self-contained raster basemap (CARTO dark tiles) — reliable fallback, no style.json fetch.
 const BASEMAP_STYLE = {
   version: 8,
   sources: {
@@ -42,6 +47,83 @@ const HEAT_RANGE: [number, number, number][] = [
   [214, 40, 40],
 ];
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+let mapplsSdk: Promise<any> | null = null;
+
+function loadMappls(key: string): Promise<any> {
+  const w = window as any;
+  if (w.mappls && w.mappls.Map) return Promise.resolve(w.mappls);
+  if (mapplsSdk) return mapplsSdk;
+  mapplsSdk = new Promise((resolve, reject) => {
+    const cb = "__raasteMapplsCb";
+    w[cb] = () =>
+      w.mappls && w.mappls.Map
+        ? resolve(w.mappls)
+        : reject(new Error("mappls unavailable"));
+    const s = document.createElement("script");
+    s.src = `https://apis.mappls.com/advancedmaps/api/${key}/map_sdk?layer=vector&v=3.0&callback=${cb}`;
+    s.async = true;
+    s.onerror = () => reject(new Error("mappls sdk load error"));
+    document.head.appendChild(s);
+    setTimeout(() => reject(new Error("mappls sdk timeout")), 9000);
+  });
+  return mapplsSdk;
+}
+
+// Resolve only once the Mappls map has actually loaded its tiles.
+function createMapplsMap(
+  container: HTMLDivElement,
+  center: [number, number]
+): Promise<any> {
+  return loadMappls(MAPPLS_KEY as string).then(
+    (mappls) =>
+      new Promise((resolve, reject) => {
+        let map: any;
+        const to = setTimeout(() => {
+          try {
+            map?.remove();
+          } catch {}
+          reject(new Error("mappls map load timeout"));
+        }, 9000);
+        try {
+          map = new mappls.Map(container, {
+            center: [center[0], center[1]], // Mappls expects [lat, lng]
+            zoom: 11.2,
+            zoomControl: true,
+            location: false,
+          });
+          map.on("load", () => {
+            clearTimeout(to);
+            resolve(map);
+          });
+        } catch (e) {
+          clearTimeout(to);
+          reject(e);
+        }
+      })
+  );
+}
+
+function createCartoMap(
+  container: HTMLDivElement,
+  center: [number, number]
+): maplibregl.Map {
+  const map = new maplibregl.Map({
+    container,
+    style: BASEMAP_STYLE,
+    center: [center[1], center[0]],
+    zoom: 11.2,
+    minZoom: 9,
+    maxZoom: 18,
+    attributionControl: { compact: true },
+  });
+  map.addControl(
+    new maplibregl.NavigationControl({ showCompass: false }),
+    "bottom-right"
+  );
+  return map;
+}
+
 export interface MapProps {
   center: [number, number];
   hotspots: Hotspot[];
@@ -68,41 +150,73 @@ export default function HotspotMap({
   onSelect,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useRef<any>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
+  const [ready, setReady] = useState(false);
 
-  // create the map once
+  // create the map once (Mappls on prod, CARTO otherwise / on failure)
   useEffect(() => {
     const container = containerRef.current;
     if (!container || mapRef.current) return;
-    const map = new maplibregl.Map({
-      container,
-      style: BASEMAP_STYLE,
-      center: [center[1], center[0]],
-      zoom: 11.2,
-      minZoom: 9,
-      maxZoom: 18,
-      attributionControl: { compact: true },
-    });
-    map.addControl(
-      new maplibregl.NavigationControl({ showCompass: false }),
-      "bottom-right"
-    );
-    map.on("load", () => map.resize());
-    map.on("error", (e) => console.warn("map error", e?.error?.message ?? e));
+    let cancelled = false;
+    let ro: ResizeObserver | null = null;
 
-    const overlay = new MapboxOverlay({ layers: [] });
-    map.addControl(overlay as unknown as maplibregl.IControl);
+    const useMappls =
+      !!MAPPLS_KEY &&
+      typeof window !== "undefined" &&
+      MAPPLS_HOSTS.has(window.location.hostname);
 
-    // keep the canvas sized to its flex container
-    const ro = new ResizeObserver(() => map.resize());
-    ro.observe(container);
+    const setup = (map: any) => {
+      if (cancelled) {
+        try {
+          map.remove();
+        } catch {}
+        return;
+      }
+      const overlay = new MapboxOverlay({ layers: [] });
+      map.addControl(overlay as unknown as maplibregl.IControl);
+      map.on("error", (e: any) =>
+        console.warn("map error", e?.error?.message ?? e)
+      );
+      map.on("load", () => {
+        try {
+          map.resize();
+        } catch {}
+      });
+      ro = new ResizeObserver(() => {
+        try {
+          map.resize();
+        } catch {}
+      });
+      ro.observe(container);
+      try {
+        map.resize();
+      } catch {}
+      mapRef.current = map;
+      overlayRef.current = overlay;
+      setReady(true);
+    };
 
-    mapRef.current = map;
-    overlayRef.current = overlay;
+    (async () => {
+      let map: any = null;
+      if (useMappls) {
+        try {
+          map = await createMapplsMap(container, center);
+        } catch (e) {
+          console.warn("Mappls basemap unavailable, using CARTO:", e);
+          map = null;
+        }
+      }
+      if (!map && !cancelled) map = createCartoMap(container, center);
+      if (map) setup(map);
+    })();
+
     return () => {
-      ro.disconnect();
-      map.remove();
+      cancelled = true;
+      ro?.disconnect();
+      try {
+        mapRef.current?.remove();
+      } catch {}
       mapRef.current = null;
       overlayRef.current = null;
     };
@@ -114,7 +228,7 @@ export default function HotspotMap({
     const map = mapRef.current;
     if (!map || !focusBounds) return;
     map.fitBounds(focusBounds, { padding: 90, maxZoom: 14.5, duration: 800 });
-  }, [focusBounds]);
+  }, [focusBounds, ready]);
 
   // rebuild deck layers when data / filters / selection change
   useEffect(() => {
@@ -211,6 +325,7 @@ export default function HotspotMap({
       },
     });
   }, [
+    ready,
     hotspots,
     points,
     congestion,
@@ -221,8 +336,8 @@ export default function HotspotMap({
     onSelect,
   ]);
 
-  // Outer div keeps the Tailwind `absolute inset-0`; the inner div is the MapLibre
-  // container (MapLibre forces position:relative on it, so it must size via h/w-full).
+  // Outer div keeps the Tailwind `absolute inset-0`; the inner div is the map
+  // container (the GL libs force position:relative, so it must size via h/w-full).
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full" />
