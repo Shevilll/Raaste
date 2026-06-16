@@ -10,6 +10,7 @@ import type {
   Prediction,
   Offenders as OffendersData,
   JunctionsFile,
+  Simulator,
 } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [offenders, setOffenders] = useState<OffendersData | null>(null);
   const [junctionsData, setJunctionsData] = useState<JunctionsFile | null>(null);
+  const [sim, setSim] = useState<Simulator | null>(null);
   const [lens, setLens] = useState<"station" | "junction">("station");
   const [junctionId, setJunctionId] = useState<string | null>(null);
   const [showJunctions, setShowJunctions] = useState(false);
@@ -71,7 +73,7 @@ export default function Dashboard() {
     };
     (async () => {
       try {
-        const [s, h, p, c, pr, off, jn] = await Promise.all([
+        const [s, h, p, c, pr, off, jn, sm] = await Promise.all([
           getJSON("/data/summary.json"),
           getJSON("/data/hotspots.json"),
           getJSON("/data/points.json"),
@@ -79,6 +81,7 @@ export default function Dashboard() {
           getJSON("/data/prediction.json"),
           getJSON("/data/offenders.json"),
           getJSON("/data/junctions.json"),
+          getJSON("/data/simulator.json"),
         ]);
         if (!alive) return;
         setSummary(s);
@@ -88,6 +91,7 @@ export default function Dashboard() {
         setPrediction(pr);
         setOffenders(off);
         setJunctionsData(jn);
+        setSim(sm);
         setLoading(false);
       } catch (e) {
         console.warn("data load failed", e);
@@ -311,6 +315,7 @@ export default function Dashboard() {
           {summary && (
             <CoverageChart hotspots={hotspots} totalImpact={summary.totalImpact} />
           )}
+          {sim && <WhatIfPanel sim={sim} />}
           {summary && <Trends summary={summary} hour={hour} dow={dow} />}
           {summary?.monthly && <MonthlyTrend monthly={summary.monthly} />}
           {prediction && <ModelCard p={prediction} />}
@@ -864,6 +869,60 @@ function JunctionList({
             <ScoreChip score={j.score} />
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function WhatIfPanel({ sim }: { sim: Simulator }) {
+  const [n, setN] = useState(Math.min(25, sim.nMax));
+  const i = Math.min(n, sim.nMax) - 1;
+  const impact = sim.impactPct[i] ?? 0;
+  const congH = sim.congHours[i] ?? 0;
+  const congP = sim.congPct[i] ?? 0;
+  const events = sim.events[i] ?? 0;
+  const maxImpact = sim.impactPct[sim.nMax - 1] || 1;
+  return (
+    <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--info-text)]">
+        What-if · clear the worst hotspots
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl font-semibold text-[var(--text-strong)]">{impact}%</span>
+        <span className="text-[11px] text-[var(--text-muted)]">of parking impact addressed</span>
+      </div>
+      <div className="text-[11px] text-[var(--text)]">
+        clearing the worst{" "}
+        <span className="font-semibold text-[var(--accent-text)]">{n}</span> hotspots also
+        covers {fmt(congH)} congestion-hours ({congP}%) across {fmt(events)} real incidents
+      </div>
+      <input
+        type="range"
+        min={1}
+        max={sim.nMax}
+        value={n}
+        onChange={(e) => setN(Number(e.target.value))}
+        aria-label="Number of hotspots cleared"
+        className="mt-2 w-full accent-amber-500"
+      />
+      <div className="mt-1 flex h-10 items-end gap-px">
+        {sim.impactPct.map((v, idx) => (
+          <div
+            key={idx}
+            className={`flex-1 rounded-sm ${
+              idx === i
+                ? "bg-amber-400"
+                : idx < i
+                ? "bg-sky-400/60"
+                : "bg-[var(--track)]"
+            }`}
+            style={{ height: `${Math.max((v / maxImpact) * 100, 3)}%` }}
+          />
+        ))}
+      </div>
+      <div className="mt-1 text-[9px] text-[var(--text-faint)]">
+        worst {sim.nMax} hotspots → {sim.impactPct[sim.nMax - 1]}% of impact ·{" "}
+        {sim.congPct[sim.nMax - 1]}% of logged congestion
       </div>
     </div>
   );

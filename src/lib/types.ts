@@ -128,3 +128,15 @@ export interface JunctionsFile {
   pctOfImpact: number;
   radiusM: number;
 }
+
+export interface Simulator {
+  nMax: number;
+  radiusM: number;
+  totalImpact: number;
+  totalCongestionHours: number;
+  totalCongestionEvents: number;
+  impactPct: number[];
+  congHours: number[];
+  congPct: number[];
+  events: number[];
+}
