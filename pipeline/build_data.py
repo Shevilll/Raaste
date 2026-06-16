@@ -255,6 +255,7 @@ def main():
     summary = {
         "totalViolations": n,
         "geoViolations": geo,
+        "totalImpact": sum(cell_sev.values()),
         "dateRange": [dmin, dmax],
         "cityCenter": [round(sum_lat / max(geo, 1), 5), round(sum_lng / max(geo, 1), 5)],
         "numHotspots": len(hotspots),

@@ -3,6 +3,7 @@ export type Pair = [string, number];
 export interface Summary {
   totalViolations: number;
   geoViolations: number;
+  totalImpact: number;
   dateRange: [string, string];
   cityCenter: [number, number];
   numHotspots: number;

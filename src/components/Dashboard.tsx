@@ -12,6 +12,7 @@ import type {
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
 import TimeControls from "@/components/TimeControls";
+import OptimizerModal from "@/components/OptimizerModal";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
@@ -32,6 +33,8 @@ export default function Dashboard() {
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
   const [showCongestion, setShowCongestion] = useState(false);
+  const [optimizerOpen, setOptimizerOpen] = useState(false);
+  const [teams, setTeams] = useState(8);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -126,6 +129,12 @@ export default function Dashboard() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setOptimizerOpen(true)}
+            className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+          >
+            ⚡ Patrol plan
+          </button>
           <Toggle on={showHeatmap} set={setShowHeatmap} label="Heatmap" />
           <Toggle on={showHotspots} set={setShowHotspots} label="Hotspots" />
           <Toggle
@@ -201,6 +210,16 @@ export default function Dashboard() {
           <Legend />
         </main>
       </div>
+
+      {optimizerOpen && summary && (
+        <OptimizerModal
+          hotspots={hotspots}
+          totalImpact={summary.totalImpact}
+          teams={teams}
+          setTeams={setTeams}
+          onClose={() => setOptimizerOpen(false)}
+        />
+      )}
     </div>
   );
 }
