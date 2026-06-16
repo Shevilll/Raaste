@@ -33,12 +33,19 @@ body {
   --border-strong: #334155; --text: #e2e8f0; --text-strong: #ffffff;
   --text-muted: #94a3b8; --text-faint: #64748b; --chip: #1e293b;
   --chip-text: #cbd5e1; --track: #334155;
+  --accent-text: #fbbf24; --danger-text: #fca5a5;
+  --danger-bg: rgba(127, 29, 29, 0.18); --danger-border: rgba(153, 27, 27, 0.45);
+  --info-text: #7dd3fc; --info-bg: rgba(8, 47, 73, 0.12);
+  --info-border: rgba(12, 74, 110, 0.4);
 }
 html[data-theme="light"] {
   --bg: #eef2f7; --surface: #ffffff; --panel: #f8fafc; --border: #e2e8f0;
   --border-strong: #cbd5e1; --text: #1e293b; --text-strong: #0f172a;
   --text-muted: #475569; --text-faint: #64748b; --chip: #e8edf3;
   --chip-text: #334155; --track: #cbd5e1;
+  --accent-text: #b45309; --danger-text: #b91c1c;
+  --danger-bg: #fef2f2; --danger-border: #fecaca;
+  --info-text: #0369a1; --info-bg: #f0f9ff; --info-border: #bae6fd;
 }
 
 /* Dark-mode the Mappls (production) basemap so it matches the dark UI. This only

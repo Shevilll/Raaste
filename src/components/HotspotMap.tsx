@@ -9,6 +9,12 @@ import type { Layer, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Hotspot, Point, CongestionEvent } from "@/lib/types";
 
+// A single simulated live-feed ping (one incoming "report" on the map).
+type Ping = { id: number; lng: number; lat: number; born: number };
+
+// How long a ping stays alive before it's dropped (ms).
+const PING_LIFE = 2200;
+
 // Mappls (MapmyIndia) basemap is used on the whitelisted production domain; everywhere
 // else (localhost, previews) and on any load failure we fall back to CARTO so the map
 // always renders.
@@ -135,6 +141,7 @@ export interface MapProps {
   selectedId: string | null;
   focusBounds?: [[number, number], [number, number]] | null;
   route: Hotspot[] | null;
+  showLive: boolean;
   onSelect: (h: Hotspot | null) => void;
 }
 
@@ -149,12 +156,17 @@ export default function HotspotMap({
   selectedId,
   focusBounds,
   route,
+  showLive,
   onSelect,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [ready, setReady] = useState(false);
+
+  // Live-feed simulation: lightweight DOM pings projected over the map.
+  const [pings, setPings] = useState<Ping[]>([]);
+  const [liveCount, setLiveCount] = useState(0);
 
   // create the map once (Mappls on prod, CARTO otherwise / on failure)
   useEffect(() => {
@@ -398,11 +410,146 @@ export default function HotspotMap({
     onSelect,
   ]);
 
+  // Live-feed simulation. Spawns amber pings at random (score-weighted) hotspots
+  // and keeps them attached to the map as it pans/zooms. Purely a DOM overlay —
+  // it never touches the deck.gl layers, so the heatmap/scatter stay untouched.
+  useEffect(() => {
+    if (!showLive || !ready) {
+      // Nothing running: make sure the overlay is empty.
+      setPings([]);
+      return;
+    }
+
+    let nextId = 0;
+
+    // Pick a hotspot, biased toward higher scores (more "active" areas fire more
+    // often). Falls back to a uniform pick if every score is zero.
+    const pickHotspot = (): Hotspot | null => {
+      if (!hotspots.length) return null;
+      const total = hotspots.reduce((sum, h) => sum + (h.score || 0), 0);
+      if (total <= 0) {
+        return hotspots[Math.floor(Math.random() * hotspots.length)];
+      }
+      let r = Math.random() * total;
+      for (const h of hotspots) {
+        r -= h.score || 0;
+        if (r <= 0) return h;
+      }
+      return hotspots[hotspots.length - 1];
+    };
+
+    const spawn = setInterval(() => {
+      const h = pickHotspot();
+      if (!h) return;
+      const ping: Ping = { id: nextId++, lng: h.lng, lat: h.lat, born: Date.now() };
+      setLiveCount((c) => c + 1);
+      setPings((prev) => {
+        const now = Date.now();
+        const live = prev.filter((p) => now - p.born < PING_LIFE);
+        return [...live, ping].slice(-14);
+      });
+    }, 700);
+
+    // Faster tick so rings keep animating and dead pings get pruned smoothly.
+    const tick = setInterval(() => {
+      setPings((prev) => {
+        const now = Date.now();
+        const live = prev.filter((p) => now - p.born < PING_LIFE);
+        return live.length === prev.length ? prev : live;
+      });
+    }, 80);
+
+    // Re-render on map movement so projected positions stay glued to the map.
+    const nudge = () => setPings((prev) => prev.slice());
+    const map = mapRef.current;
+    try {
+      map?.on("move", nudge);
+      map?.on("zoom", nudge);
+    } catch {}
+
+    return () => {
+      clearInterval(spawn);
+      clearInterval(tick);
+      try {
+        map?.off("move", nudge);
+        map?.off("zoom", nudge);
+      } catch {}
+      setPings([]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showLive, ready, hotspots]);
+
   // Outer div keeps the Tailwind `absolute inset-0`; the inner div is the map
   // container (the GL libs force position:relative, so it must size via h/w-full).
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} id="raaste-basemap" className="h-full w-full" />
+
+      {showLive && ready && (
+        <>
+          {/* Live-feed pings: each is an expanding, fading amber ring + dot,
+              projected to screen space from its lng/lat every render. */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {pings.map((p) => {
+              let screen: { x: number; y: number } | null = null;
+              try {
+                screen = mapRef.current?.project([p.lng, p.lat]) ?? null;
+              } catch {
+                screen = null;
+              }
+              if (!screen) return null;
+
+              const age = Date.now() - p.born;
+              const t = Math.min(age / PING_LIFE, 1);
+              const radius = 6 + t * 28; // grows 6px -> 34px
+              const opacity = 1 - t; // fades to 0
+
+              return (
+                <div
+                  key={p.id}
+                  className="pointer-events-none absolute"
+                  style={{ left: screen.x, top: screen.y }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: -radius,
+                      top: -radius,
+                      width: radius * 2,
+                      height: radius * 2,
+                      borderRadius: "9999px",
+                      border: "2px solid rgba(245, 158, 11, 0.9)",
+                      opacity,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: -3,
+                      top: -3,
+                      width: 6,
+                      height: 6,
+                      borderRadius: "9999px",
+                      background: "rgb(245, 158, 11)",
+                      opacity: Math.max(opacity, 0.3),
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Status badge — sits below the route-clear button (top-3 left-3). */}
+          <div className="pointer-events-none absolute left-3 top-14 flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-500 backdrop-blur-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+            </span>
+            <span>LIVE · simulating real-time feed</span>
+            <span className="tabular-nums opacity-70">{liveCount}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

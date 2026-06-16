@@ -100,7 +100,7 @@ export default function MethodologyModal({
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-amber-400/90">
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-text)]">
         {title}
       </div>
       <p>{children}</p>

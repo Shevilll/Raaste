@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [showHotspots, setShowHotspots] = useState(true);
   const [showCongestion, setShowCongestion] = useState(false);
   const [showForecast, setShowForecast] = useState(false);
+  const [showLive, setShowLive] = useState(false);
   const [optimizerOpen, setOptimizerOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
   const [teams, setTeams] = useState(8);
@@ -207,7 +208,7 @@ export default function Dashboard() {
       <header className="z-20 flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4">
         <div className="flex items-baseline gap-3">
           <span className="text-lg font-semibold tracking-tight text-[var(--text-strong)]">
-            Raa<span className="text-amber-500">ste</span>
+            Raa<span className="text-[var(--accent-text)]">ste</span>
           </span>
           <span className="hidden text-xs text-[var(--text-muted)] sm:inline">
             Parking-Congestion Intelligence · Bengaluru Traffic Police
@@ -237,6 +238,7 @@ export default function Dashboard() {
           {prediction && (
             <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
           )}
+          <Toggle on={showLive} set={setShowLive} label="Live" />
         </div>
       </header>
 
@@ -303,6 +305,7 @@ export default function Dashboard() {
                 showHotspots={showHotspots}
                 congestion={congestion?.events ?? []}
                 showCongestion={showCongestion}
+                showLive={showLive}
                 selectedId={selectedId}
                 focusBounds={focusBounds}
                 route={route?.zones ?? null}
@@ -387,8 +390,8 @@ function ModelCard({ p }: { p: Prediction }) {
   const maxA = Math.max(...a, 1);
   const maxP = Math.max(...pr, 1);
   return (
-    <div className="rounded-lg border border-sky-900/40 bg-sky-950/10 p-3">
-      <div className="text-[11px] uppercase tracking-wider text-sky-300/80">
+    <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--info-text)]">
         AI forecast model
       </div>
       <div className="mt-1 flex items-baseline gap-2">
@@ -457,8 +460,8 @@ function ModelCard({ p }: { p: Prediction }) {
 function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
   const x = c.correlation;
   return (
-    <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-3">
-      <div className="text-[11px] uppercase tracking-wider text-red-300/80">
+    <div className="rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--danger-text)]">
         Parking → congestion
       </div>
       <div className="mt-1 text-2xl font-semibold text-[var(--text-strong)]">
@@ -472,7 +475,7 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
         <span>{fmt(x.totalEvents)} ASTraM events cross-referenced</span>
         <button
           onClick={onShow}
-          className="text-red-300 hover:text-red-200"
+          className="text-[var(--danger-text)] hover:opacity-80"
         >
           show on map →
         </button>
@@ -664,9 +667,9 @@ function HotspotDetail({
 function ScoreChip({ score }: { score: number }) {
   const hue =
     score >= 75
-      ? "bg-red-500/20 text-red-300"
+      ? "bg-red-500/20 text-[var(--danger-text)]"
       : score >= 45
-      ? "bg-amber-500/20 text-amber-300"
+      ? "bg-amber-500/20 text-[var(--accent-text)]"
       : "bg-slate-600/30 text-slate-300";
   return (
     <span

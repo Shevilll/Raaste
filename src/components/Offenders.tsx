@@ -12,7 +12,7 @@ export default function Offenders({ data }: { data: Offenders }) {
         Repeat offenders
       </div>
 
-      <div className="mt-1 text-3xl font-semibold text-amber-500">
+      <div className="mt-1 text-3xl font-semibold text-[var(--accent-text)]">
         {data.top1pct.share}%
       </div>
       <div className="text-xs text-[var(--text-muted)]">

@@ -118,7 +118,7 @@ export default function CoverageChart({
       </div>
 
       <p className="mt-2 text-[12px] leading-snug text-[var(--text)]">
-        <span className="font-semibold text-amber-400">
+        <span className="font-semibold text-[var(--accent-text)]">
           Just {takeawayN} zones
         </span>{" "}
         cover {Math.round(takeawayPct)}% of all parking-congestion impact
