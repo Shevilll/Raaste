@@ -567,14 +567,14 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
   return (
     <div className="rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3">
       <div className="text-[11px] uppercase tracking-wider text-[var(--danger-text)]">
-        Parking → congestion
+        Parking ↔ congestion
       </div>
       <div className="mt-1 text-2xl font-semibold text-[var(--text-strong)]">
         {x.pctTop50}%
       </div>
       <div className="text-xs text-[var(--text)]">
-        of the top 50 parking hotspots sit within {x.radiusM}m of a real ASTraM
-        congestion event ({x.pctTop100}% of the top 100).
+        of the top 50 parking hotspots co-locate with a real ASTraM congestion
+        event within {x.radiusM}m ({x.pctTop100}% of the top 100).
       </div>
       <div className="mt-2 border-t border-[var(--danger-border)] pt-2">
         <div className="flex items-baseline justify-between">
@@ -589,10 +589,10 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
           {fmt(c.cost.nearEvents)} events · {fmt(c.cost.nearHours)} congestion-hours
           sit on the top {c.cost.topN} parking hotspots
         </div>
-        <div className="mt-0.5 text-[9px] leading-snug text-[var(--text-faint)]">
-          estimate: {fmt(c.cost.estVehicleHours)} vehicle-hours × ₹
-          {c.cost.rupeesPerVehHour}; event clear-times imputed for{" "}
-          {c.cost.imputedSharePct}% of events
+        <div className="mt-1 text-[10px] leading-snug text-[var(--text-muted)]">
+          rough estimate — {c.cost.imputedSharePct}% of event clear-times imputed;
+          assumes {fmt(c.cost.estVehicleHours)} vehicle-hours × ₹
+          {c.cost.rupeesPerVehHour}
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-faint)]">
@@ -929,6 +929,9 @@ function WhatIfPanel({ sim }: { sim: Simulator }) {
         worst {sim.nMax} hotspots → {sim.impactPct[sim.nMax - 1]}% of impact ·{" "}
         {sim.congPct[sim.nMax - 1]}% of logged congestion
       </div>
+      <div className="mt-0.5 text-[9px] text-[var(--text-faint)]">
+        congestion-hours use logged ASTraM durations, median-imputed where missing
+      </div>
     </div>
   );
 }
@@ -940,6 +943,7 @@ function RevenuePanel({ fines }: { fines: Fines }) {
   const rejected = countOf("rejected");
   const pending = countOf("pending");
   const total = fines.totalViolations || 1;
+  const other = Math.max(total - approved - rejected - pending, 0);
   const seg = (c: number) => `${((100 * c) / total).toFixed(1)}%`;
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
@@ -960,6 +964,7 @@ function RevenuePanel({ fines }: { fines: Fines }) {
         <div className="bg-emerald-500" style={{ width: seg(approved) }} />
         <div className="bg-red-500" style={{ width: seg(rejected) }} />
         <div className="bg-amber-500/70" style={{ width: seg(pending) }} />
+        <div className="bg-[var(--track)]" style={{ width: seg(other) }} />
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] text-[var(--text-faint)]">
         <span className="flex items-center gap-1">
@@ -974,6 +979,12 @@ function RevenuePanel({ fines }: { fines: Fines }) {
           <span className="inline-block h-2 w-2 rounded-sm bg-amber-500/70" />
           pending {fmt(pending)}
         </span>
+        {other > 0 && (
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-2 w-2 rounded-sm bg-[var(--track)]" />
+            other {fmt(other)}
+          </span>
+        )}
       </div>
       <div className="mt-2 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
         Top stations by fine value
