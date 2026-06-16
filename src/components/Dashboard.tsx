@@ -78,6 +78,49 @@ export default function Dashboard() {
     };
   }, []);
 
+  // restore a shared view from the URL on first load
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const n = (k: string) => Number(p.get(k));
+    if (p.has("h")) setHour(n("h"));
+    if (p.has("d")) setDow(n("d"));
+    if (p.has("s")) setStation(p.get("s"));
+    if (p.has("t")) setTypeIdx(n("t"));
+    if (p.has("heat")) setShowHeatmap(p.get("heat") !== "0");
+    if (p.has("hot")) setShowHotspots(p.get("hot") !== "0");
+    if (p.has("cong")) setShowCongestion(p.get("cong") === "1");
+    if (p.has("fc")) setShowForecast(p.get("fc") === "1");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // keep the URL in sync so the current view can be shared / bookmarked
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (hour >= 0) p.set("h", String(hour));
+    if (dow >= 0) p.set("d", String(dow));
+    if (station) p.set("s", station);
+    if (typeIdx !== null) p.set("t", String(typeIdx));
+    if (!showHeatmap) p.set("heat", "0");
+    if (!showHotspots) p.set("hot", "0");
+    if (showCongestion) p.set("cong", "1");
+    if (showForecast) p.set("fc", "1");
+    const qs = p.toString();
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `?${qs}` : window.location.pathname
+    );
+  }, [
+    hour,
+    dow,
+    station,
+    typeIdx,
+    showHeatmap,
+    showHotspots,
+    showCongestion,
+    showForecast,
+  ]);
+
   const center: [number, number] = summary?.cityCenter ?? [12.97, 77.59];
 
   // heatmap points filtered by the active hour / day
