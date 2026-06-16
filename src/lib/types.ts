@@ -79,3 +79,34 @@ export interface Offenders {
   top1pct: { vehicles: number; share: number };
   offenders: { vehicle: string; count: number; type: string }[];
 }
+
+export interface Junction {
+  id: string;
+  code: string | null;
+  name: string;
+  rank: number;
+  lat: number;
+  lng: number;
+  count: number;
+  impact: number;
+  score: number;
+  topTypes: [string, number][];
+  vehicle: string;
+  station: string;
+  peakHour: number | null;
+  peakDow: number | null;
+  hourly: number[];
+  daily: number[];
+  congestionNearby: number;
+  minDistM: number | null;
+}
+
+export interface JunctionsFile {
+  junctions: Junction[];
+  count: number;
+  violationsAtJunctions: number;
+  pctOfViolations: number;
+  impactAtJunctions: number;
+  pctOfImpact: number;
+  radiusM: number;
+}
