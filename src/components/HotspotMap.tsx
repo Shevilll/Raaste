@@ -49,6 +49,7 @@ export interface MapProps {
   showHeatmap: boolean;
   showHotspots: boolean;
   selectedId: string | null;
+  focusBounds?: [[number, number], [number, number]] | null;
   onSelect: (h: Hotspot | null) => void;
 }
 
@@ -59,6 +60,7 @@ export default function HotspotMap({
   showHeatmap,
   showHotspots,
   selectedId,
+  focusBounds,
   onSelect,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -102,6 +104,13 @@ export default function HotspotMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // fly to a selected station's hotspots
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusBounds) return;
+    map.fitBounds(focusBounds, { padding: 90, maxZoom: 14.5, duration: 800 });
+  }, [focusBounds]);
 
   // rebuild deck layers when data / filters / selection change
   useEffect(() => {

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Summary, Hotspot, Point } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
-import { fmt, hourRange, DAYS } from "@/lib/format";
+import Trends from "@/components/Trends";
+import TimeControls from "@/components/TimeControls";
+import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
   ssr: false,
@@ -14,7 +16,11 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [points, setPoints] = useState<Point[]>([]);
-  const [selected, setSelected] = useState<Hotspot | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [station, setStation] = useState<string | null>(null);
+  const [hour, setHour] = useState(-1);
+  const [dow, setDow] = useState(-1);
+  const [playing, setPlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -41,6 +47,60 @@ export default function Dashboard() {
 
   const center: [number, number] = summary?.cityCenter ?? [12.97, 77.59];
 
+  // heatmap points filtered by the active hour / day
+  const filteredPoints = useMemo(() => {
+    if (hour < 0 && dow < 0) return points;
+    return points.filter(
+      (p) => (hour < 0 || p[4] === hour) && (dow < 0 || p[5] === dow)
+    );
+  }, [points, hour, dow]);
+
+  // hotspots filtered by station and re-ranked for the active hour / day
+  const displayHotspots = useMemo(() => {
+    const base = station
+      ? hotspots.filter((h) => h.station === station)
+      : hotspots;
+    if (hour < 0 && dow < 0) return base;
+    const valOf = (h: Hotspot) =>
+      hour >= 0 ? h.hourly[hour] ?? 0 : h.daily[dow] ?? 0;
+    const scored = base.map((h) => ({ h, v: valOf(h) })).filter((x) => x.v > 0);
+    const max = Math.max(...scored.map((x) => x.v), 1);
+    return scored
+      .sort((a, b) => b.v - a.v)
+      .map((x, i) => ({
+        ...x.h,
+        rank: i + 1,
+        count: x.v,
+        score: Math.round((1000 * x.v) / max) / 10,
+      }));
+  }, [hotspots, station, hour, dow]);
+
+  const focusBounds = useMemo<
+    [[number, number], [number, number]] | null
+  >(() => {
+    if (!station) return null;
+    const hs = hotspots.filter((h) => h.station === station);
+    if (!hs.length) return null;
+    const lats = hs.map((h) => h.lat);
+    const lngs = hs.map((h) => h.lng);
+    return [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ];
+  }, [station, hotspots]);
+
+  const selectedHotspot = selectedId
+    ? hotspots.find((h) => h.id === selectedId) ?? null
+    : null;
+
+  const listTitle = station
+    ? station
+    : hour >= 0
+    ? `Worst at ${hourLabel(hour)}`
+    : dow >= 0
+    ? `Worst on ${DAYS[dow]}`
+    : "Worst hotspots";
+
   return (
     <div className="flex h-screen w-screen flex-col bg-[#070b14] text-slate-200">
       <header className="z-20 flex h-14 items-center justify-between border-b border-slate-800 bg-[#0a0f1c] px-4">
@@ -61,24 +121,52 @@ export default function Dashboard() {
       <div className="relative flex flex-1 overflow-hidden">
         <aside className="z-10 flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-slate-800 bg-[#0a0f1c]/95 p-3">
           {summary && <StatsPanel summary={summary} />}
-          {selected ? (
-            <HotspotDetail h={selected} onBack={() => setSelected(null)} />
+          {summary && <Trends summary={summary} hour={hour} dow={dow} />}
+          {selectedHotspot ? (
+            <HotspotDetail
+              h={selectedHotspot}
+              onBack={() => setSelectedId(null)}
+            />
           ) : (
-            <RankedList hotspots={hotspots} onSelect={setSelected} />
+            <>
+              {summary && (
+                <StationFilter
+                  stations={summary.topStations}
+                  active={station}
+                  onSelect={setStation}
+                />
+              )}
+              <RankedList
+                hotspots={displayHotspots}
+                title={listTitle}
+                onSelect={setSelectedId}
+              />
+            </>
           )}
         </aside>
 
         <main className="relative flex-1">
           {!loading && summary && (
-            <HotspotMap
-              center={center}
-              hotspots={hotspots}
-              points={points}
-              showHeatmap={showHeatmap}
-              showHotspots={showHotspots}
-              selectedId={selected?.id ?? null}
-              onSelect={setSelected}
-            />
+            <>
+              <TimeControls
+                hour={hour}
+                setHour={setHour}
+                dow={dow}
+                setDow={setDow}
+                playing={playing}
+                setPlaying={setPlaying}
+              />
+              <HotspotMap
+                center={center}
+                hotspots={displayHotspots}
+                points={filteredPoints}
+                showHeatmap={showHeatmap}
+                showHotspots={showHotspots}
+                selectedId={selectedId}
+                focusBounds={focusBounds}
+                onSelect={(h) => setSelectedId(h ? h.id : null)}
+              />
+            </>
           )}
           {loading && (
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
@@ -115,23 +203,74 @@ function Toggle({
   );
 }
 
+function StationFilter({
+  stations,
+  active,
+  onSelect,
+}: {
+  stations: [string, number, number][];
+  active: string | null;
+  onSelect: (s: string | null) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-slate-500">
+          By police station
+        </span>
+        {active && (
+          <button
+            onClick={() => onSelect(null)}
+            className="text-[10px] text-amber-400 hover:text-amber-300"
+          >
+            clear ✕
+          </button>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {stations.slice(0, 12).map(([name, count]) => (
+          <button
+            key={name}
+            onClick={() => onSelect(active === name ? null : name)}
+            title={`${fmt(count)} violations`}
+            className={`rounded px-2 py-0.5 text-[10px] ${
+              active === name
+                ? "bg-amber-500 text-slate-950"
+                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RankedList({
   hotspots,
+  title,
   onSelect,
 }: {
   hotspots: Hotspot[];
-  onSelect: (h: Hotspot) => void;
+  title: string;
+  onSelect: (id: string) => void;
 }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
       <div className="text-[11px] uppercase tracking-wider text-slate-500">
-        Worst hotspots
+        {title}
       </div>
       <div className="mt-2 space-y-1.5">
+        {hotspots.length === 0 && (
+          <div className="text-[11px] text-slate-500">
+            No hotspots for this filter.
+          </div>
+        )}
         {hotspots.slice(0, 40).map((h) => (
           <button
             key={h.id}
-            onClick={() => onSelect(h)}
+            onClick={() => onSelect(h.id)}
             className="flex w-full items-center gap-2 rounded-md bg-slate-800/40 px-2 py-1.5 text-left hover:bg-slate-800"
           >
             <span className="w-6 shrink-0 text-xs font-semibold text-amber-500">
@@ -164,7 +303,9 @@ function HotspotDetail({ h, onBack }: { h: Hotspot; onBack: () => void }) {
         ← back to list
       </button>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-white">#{h.rank} hotspot</span>
+        <span className="text-sm font-semibold text-white">
+          #{h.rank} hotspot
+        </span>
         <ScoreChip score={h.score} />
       </div>
       <div className="mt-1 text-xs text-slate-300">
@@ -216,7 +357,8 @@ function HotspotDetail({ h, onBack }: { h: Hotspot; onBack: () => void }) {
       </div>
       {h.vehicle && (
         <div className="mt-2 text-[11px] text-slate-500">
-          Most common vehicle: <span className="text-slate-300">{h.vehicle}</span>
+          Most common vehicle:{" "}
+          <span className="text-slate-300">{h.vehicle}</span>
         </div>
       )}
     </div>
@@ -224,9 +366,16 @@ function HotspotDetail({ h, onBack }: { h: Hotspot; onBack: () => void }) {
 }
 
 function ScoreChip({ score }: { score: number }) {
-  const hue = score >= 75 ? "bg-red-500/20 text-red-300" : score >= 45 ? "bg-amber-500/20 text-amber-300" : "bg-slate-600/30 text-slate-300";
+  const hue =
+    score >= 75
+      ? "bg-red-500/20 text-red-300"
+      : score >= 45
+      ? "bg-amber-500/20 text-amber-300"
+      : "bg-slate-600/30 text-slate-300";
   return (
-    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${hue}`}>
+    <span
+      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${hue}`}
+    >
       {score}
     </span>
   );
