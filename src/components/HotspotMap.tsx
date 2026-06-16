@@ -86,7 +86,7 @@ function createMapplsMap(
           reject(new Error("mappls map load timeout"));
         }, 9000);
         try {
-          map = new mappls.Map(container, {
+          map = new mappls.Map(container.id, {
             center: [center[0], center[1]], // Mappls expects [lat, lng]
             zoom: 11.2,
             zoomControl: true,
@@ -340,7 +340,7 @@ export default function HotspotMap({
   // container (the GL libs force position:relative, so it must size via h/w-full).
   return (
     <div className="absolute inset-0">
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} id="raaste-basemap" className="h-full w-full" />
     </div>
   );
 }
