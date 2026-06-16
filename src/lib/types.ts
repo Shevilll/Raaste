@@ -140,3 +140,16 @@ export interface Simulator {
   congPct: number[];
   events: number[];
 }
+
+export interface Fines {
+  totalViolations: number;
+  totalPotentialCrore: number;
+  realizedCrore: number;
+  avgFine: number;
+  validation: [string, number, number][];
+  reviewed: number;
+  rejectedPct: number;
+  pendingPct: number;
+  byStation: [string, number, number][];
+  fineSchedule: [string, number][];
+}

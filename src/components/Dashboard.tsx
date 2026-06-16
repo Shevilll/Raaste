@@ -11,6 +11,7 @@ import type {
   Offenders as OffendersData,
   JunctionsFile,
   Simulator,
+  Fines,
 } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const [offenders, setOffenders] = useState<OffendersData | null>(null);
   const [junctionsData, setJunctionsData] = useState<JunctionsFile | null>(null);
   const [sim, setSim] = useState<Simulator | null>(null);
+  const [fines, setFines] = useState<Fines | null>(null);
   const [lens, setLens] = useState<"station" | "junction">("station");
   const [junctionId, setJunctionId] = useState<string | null>(null);
   const [showJunctions, setShowJunctions] = useState(false);
@@ -73,7 +75,7 @@ export default function Dashboard() {
     };
     (async () => {
       try {
-        const [s, h, p, c, pr, off, jn, sm] = await Promise.all([
+        const [s, h, p, c, pr, off, jn, sm, fn] = await Promise.all([
           getJSON("/data/summary.json"),
           getJSON("/data/hotspots.json"),
           getJSON("/data/points.json"),
@@ -82,6 +84,7 @@ export default function Dashboard() {
           getJSON("/data/offenders.json"),
           getJSON("/data/junctions.json"),
           getJSON("/data/simulator.json"),
+          getJSON("/data/fines.json"),
         ]);
         if (!alive) return;
         setSummary(s);
@@ -92,6 +95,7 @@ export default function Dashboard() {
         setOffenders(off);
         setJunctionsData(jn);
         setSim(sm);
+        setFines(fn);
         setLoading(false);
       } catch (e) {
         console.warn("data load failed", e);
@@ -320,6 +324,7 @@ export default function Dashboard() {
           {summary?.monthly && <MonthlyTrend monthly={summary.monthly} />}
           {prediction && <ModelCard p={prediction} />}
           {offenders && <Offenders data={offenders} />}
+          {fines && <RevenuePanel fines={fines} />}
           {selectedHotspot ? (
             <HotspotDetail
               h={selectedHotspot}
@@ -923,6 +928,69 @@ function WhatIfPanel({ sim }: { sim: Simulator }) {
       <div className="mt-1 text-[9px] text-[var(--text-faint)]">
         worst {sim.nMax} hotspots → {sim.impactPct[sim.nMax - 1]}% of impact ·{" "}
         {sim.congPct[sim.nMax - 1]}% of logged congestion
+      </div>
+    </div>
+  );
+}
+
+function RevenuePanel({ fines }: { fines: Fines }) {
+  const countOf = (s: string) =>
+    fines.validation.find((v) => v[0] === s)?.[1] ?? 0;
+  const approved = countOf("approved");
+  const rejected = countOf("rejected");
+  const pending = countOf("pending");
+  const total = fines.totalViolations || 1;
+  const seg = (c: number) => `${((100 * c) / total).toFixed(1)}%`;
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
+        Revenue &amp; enforcement integrity
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl font-semibold text-[var(--text-strong)]">
+          ≈₹{fines.totalPotentialCrore} cr
+        </span>
+        <span className="text-[11px] text-[var(--text-muted)]">potential fines</span>
+      </div>
+      <div className="text-[11px] text-[var(--text)]">
+        ₹{fines.realizedCrore} cr approved · {fines.rejectedPct}% of reviewed rejected ·{" "}
+        {fines.pendingPct}% pending
+      </div>
+      <div className="mt-2 flex h-2.5 overflow-hidden rounded bg-[var(--chip)]">
+        <div className="bg-emerald-500" style={{ width: seg(approved) }} />
+        <div className="bg-red-500" style={{ width: seg(rejected) }} />
+        <div className="bg-amber-500/70" style={{ width: seg(pending) }} />
+      </div>
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] text-[var(--text-faint)]">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm bg-emerald-500" />
+          approved {fmt(approved)}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm bg-red-500" />
+          rejected {fmt(rejected)}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm bg-amber-500/70" />
+          pending {fmt(pending)}
+        </span>
+      </div>
+      <div className="mt-2 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+        Top stations by fine value
+      </div>
+      <div className="mt-1 space-y-1">
+        {fines.byStation.slice(0, 4).map(([name, cr, count]) => (
+          <div key={name} className="flex justify-between text-[11px] text-[var(--text)]">
+            <span className="truncate pr-2">{name}</span>
+            <span className="text-[var(--text-faint)]">
+              ₹{cr} cr · {fmt(count)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 text-[9px] leading-snug text-[var(--text-faint)]">
+        priced at BTP compounding rates (₹500 standard, ₹1,000 for carriageway-blocking
+        offences)
       </div>
     </div>
   );
