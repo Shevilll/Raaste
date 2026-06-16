@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type {
   Summary,
@@ -53,28 +53,41 @@ export default function Dashboard() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    Promise.all([
-      fetch("/data/summary.json").then((r) => r.json()),
-      fetch("/data/hotspots.json").then((r) => r.json()),
-      fetch("/data/points.json").then((r) => r.json()),
-      fetch("/data/congestion.json").then((r) => r.json()),
-      fetch("/data/prediction.json").then((r) => r.json()),
-      fetch("/data/offenders.json").then((r) => r.json()),
-    ])
-      .then(([s, h, p, c, pr, off]) => {
+    const getJSON = async (url: string) => {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`${url} → ${r.status}`);
+      return r.json();
+    };
+    (async () => {
+      try {
+        const [s, h, p, c, pr, off] = await Promise.all([
+          getJSON("/data/summary.json"),
+          getJSON("/data/hotspots.json"),
+          getJSON("/data/points.json"),
+          getJSON("/data/congestion.json"),
+          getJSON("/data/prediction.json"),
+          getJSON("/data/offenders.json"),
+        ]);
         if (!alive) return;
         setSummary(s);
         setHotspots(h);
-        setPoints(p.points);
+        setPoints(p.points ?? []);
         setCongestion(c);
         setPrediction(pr);
         setOffenders(off);
         setLoading(false);
-      })
-      .catch(() => alive && setLoading(false));
+      } catch (e) {
+        console.warn("data load failed", e);
+        if (alive) {
+          setError(true);
+          setLoading(false);
+        }
+      }
+    })();
     return () => {
       alive = false;
     };
@@ -124,6 +137,21 @@ export default function Dashboard() {
   ]);
 
   const center: [number, number] = summary?.cityCenter ?? [12.97, 77.59];
+
+  const handleSelect = useCallback(
+    (h: Hotspot | null) => setSelectedId(h ? h.id : null),
+    []
+  );
+  const congestionEvents = useMemo(
+    () => congestion?.events ?? [],
+    [congestion]
+  );
+  const routeZones = useMemo(() => route?.zones ?? null, [route]);
+
+  // a generated patrol route only matches the filters it was built under
+  useEffect(() => {
+    setRoute(null);
+  }, [station, hour, dow, typeIdx, showForecast]);
 
   // heatmap points filtered by the active hour / day
   const filteredPoints = useMemo(() => {
@@ -205,22 +233,22 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-[var(--bg)] text-[var(--text)]">
-      <header className="z-20 flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4">
+      <header className="z-20 flex min-h-14 flex-wrap items-center justify-between gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-1.5">
         <div className="flex items-baseline gap-3">
-          <span className="text-lg font-semibold tracking-tight text-[var(--text-strong)]">
+          <h1 className="text-lg font-semibold tracking-tight text-[var(--text-strong)]">
             Raa<span className="text-[var(--accent-text)]">ste</span>
-          </span>
-          <span className="hidden text-xs text-[var(--text-muted)] sm:inline">
+          </h1>
+          <span className="hidden text-xs text-[var(--text-muted)] lg:inline">
             Parking-Congestion Intelligence · Bengaluru Traffic Police
           </span>
           <button
             onClick={() => setMethodOpen(true)}
-            className="hidden text-xs text-[var(--text-faint)] underline-offset-2 hover:text-amber-400 hover:underline sm:inline"
+            className="hidden text-xs text-[var(--text-faint)] underline-offset-2 hover:text-[var(--accent-text)] hover:underline lg:inline"
           >
             How it works
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <ThemeToggle />
           <button
             onClick={() => setOptimizerOpen(true)}
@@ -303,25 +331,36 @@ export default function Dashboard() {
                 points={filteredPoints}
                 showHeatmap={showHeatmap}
                 showHotspots={showHotspots}
-                congestion={congestion?.events ?? []}
+                congestion={congestionEvents}
                 showCongestion={showCongestion}
                 showLive={showLive}
                 selectedId={selectedId}
                 focusBounds={focusBounds}
-                route={route?.zones ?? null}
-                onSelect={(h) => setSelectedId(h ? h.id : null)}
+                route={routeZones}
+                onSelect={handleSelect}
               />
             </>
           )}
-          {loading && (
+          {loading && !error && (
             <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
               Loading Bengaluru parking data…
+            </div>
+          )}
+          {error && (
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[var(--text-muted)]">
+              <span>Couldn&apos;t load the parking data.</span>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+              >
+                Retry
+              </button>
             </div>
           )}
           {route && (
             <button
               onClick={() => setRoute(null)}
-              className="absolute left-3 top-3 z-10 rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg hover:bg-amber-500/10"
+              className="absolute left-3 top-3 z-10 rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] shadow-lg hover:bg-amber-500/10"
             >
               Patrol route · {route.km.toFixed(1)} km · clear ✕
             </button>
@@ -552,7 +591,7 @@ function RankedList({
           <button
             key={h.id}
             onClick={() => onSelect(h.id)}
-            className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-1.5 text-left hover:bg-[var(--chip)]"
+            className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-1.5 text-left hover:bg-[var(--track)]"
           >
             <span className="w-6 shrink-0 text-xs font-semibold text-[var(--accent-text)]">
               #{h.rank}
@@ -691,7 +730,7 @@ function Mini({ label, value }: { label: string; value: string }) {
 
 function Legend() {
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
+    <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--surface)]/95 px-3 py-2 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur">
       <div className="mb-1 uppercase tracking-wider">Violation density</div>
       <div className="flex items-center gap-1">
         <span>low</span>

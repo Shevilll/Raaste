@@ -42,7 +42,7 @@ body {
 html[data-theme="light"] {
   --bg: #eef2f7; --surface: #ffffff; --panel: #f8fafc; --border: #e2e8f0;
   --border-strong: #cbd5e1; --text: #1e293b; --text-strong: #0f172a;
-  --text-muted: #475569; --text-faint: #64748b; --chip: #e8edf3;
+  --text-muted: #334155; --text-faint: #475569; --chip: #e8edf3;
   --chip-text: #334155; --track: #cbd5e1;
   --accent-text: #b45309; --danger-text: #b91c1c;
   --danger-bg: #fef2f2; --danger-border: #fecaca;
@@ -61,4 +61,23 @@ html[data-theme="light"] {
 /* The Mappls basemap is already a light map, so in light mode it needs no inversion. */
 html[data-theme="light"] .mapboxgl-canvas {
   filter: none;
+}
+
+/* Visible keyboard focus for accessibility (both themes). */
+:where(button, a, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect users who prefer reduced motion (live-feed pings, transitions, etc.). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
