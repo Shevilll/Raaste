@@ -566,6 +566,25 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
         of the top 50 parking hotspots sit within {x.radiusM}m of a real ASTraM
         congestion event ({x.pctTop100}% of the top 100).
       </div>
+      <div className="mt-2 border-t border-[var(--danger-border)] pt-2">
+        <div className="flex items-baseline justify-between">
+          <span className="text-lg font-semibold text-[var(--text-strong)]">
+            ≈₹{c.cost.estCostCrore} cr
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-[var(--danger-text)]">
+            est. congestion cost
+          </span>
+        </div>
+        <div className="text-[11px] text-[var(--text)]">
+          {fmt(c.cost.nearEvents)} events · {fmt(c.cost.nearHours)} congestion-hours
+          sit on the top {c.cost.topN} parking hotspots
+        </div>
+        <div className="mt-0.5 text-[9px] leading-snug text-[var(--text-faint)]">
+          estimate: {fmt(c.cost.estVehicleHours)} vehicle-hours × ₹
+          {c.cost.rupeesPerVehHour}; event clear-times imputed for{" "}
+          {c.cost.imputedSharePct}% of events
+        </div>
+      </div>
       <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-faint)]">
         <span>{fmt(x.totalEvents)} ASTraM events cross-referenced</span>
         <button

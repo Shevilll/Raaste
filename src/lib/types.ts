@@ -47,6 +47,23 @@ export interface PointsFile {
 // congestion.json events: [lat, lng, causeIdx, priIdx]
 export type CongestionEvent = [number, number, number, number];
 
+export interface CongestionCost {
+  topN: number;
+  totalEventHours: number;
+  medianMin: number;
+  imputedSharePct: number;
+  closureWeight: number;
+  highPriWeight: number;
+  nearEvents: number;
+  nearHours: number;
+  nearWeightedHours: number;
+  pctHoursNear: number;
+  estVehicleHours: number;
+  estCostCrore: number;
+  vehPerHour: number;
+  rupeesPerVehHour: number;
+}
+
 export interface Congestion {
   events: CongestionEvent[];
   causeLegend: string[];
@@ -61,6 +78,7 @@ export interface Congestion {
     hitTop100: number;
     nHotspots: number;
   };
+  cost: CongestionCost;
 }
 
 export interface Prediction {
