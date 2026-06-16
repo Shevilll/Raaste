@@ -27,26 +27,30 @@ const PING_LIFE = 2200;
 const MAPPLS_KEY = process.env.NEXT_PUBLIC_MAPPLS_KEY;
 const MAPPLS_HOSTS = new Set(["raaste.theahmadfaraz.com"]);
 
-// Self-contained raster basemap (CARTO dark tiles) — reliable fallback, no style.json fetch.
-const BASEMAP_STYLE = {
-  version: 8,
-  sources: {
-    carto: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-      ],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
+// Self-contained raster basemap (CARTO tiles) — reliable fallback, no style.json fetch.
+// Light/dark variants so the fallback matches the active theme; otherwise a fallback in
+// light mode would render a dark map under the light UI.
+function cartoStyle(light: boolean): maplibregl.StyleSpecification {
+  const variant = light ? "light_all" : "dark_all";
+  const bg = light ? "#e8edf3" : "#0a0f1c";
+  return {
+    version: 8,
+    sources: {
+      carto: {
+        type: "raster",
+        tiles: ["a", "b", "c"].map(
+          (s) => `https://${s}.basemaps.cartocdn.com/${variant}/{z}/{x}/{y}@2x.png`
+        ),
+        tileSize: 256,
+        attribution: "© OpenStreetMap contributors © CARTO",
+      },
     },
-  },
-  layers: [
-    { id: "bg", type: "background", paint: { "background-color": "#0a0f1c" } },
-    { id: "carto", type: "raster", source: "carto" },
-  ],
-} as unknown as maplibregl.StyleSpecification;
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": bg } },
+      { id: "carto", type: "raster", source: "carto" },
+    ],
+  } as unknown as maplibregl.StyleSpecification;
+}
 
 // blue → teal → green → amber → orange → red
 const HEAT_RANGE: [number, number, number][] = [
@@ -129,11 +133,12 @@ function createMapplsMap(
 
 function createCartoMap(
   container: HTMLDivElement,
-  center: [number, number]
+  center: [number, number],
+  light: boolean
 ): maplibregl.Map {
   const map = new maplibregl.Map({
     container,
-    style: BASEMAP_STYLE,
+    style: cartoStyle(light),
     center: [center[1], center[0]],
     zoom: 11.2,
     minZoom: 9,
@@ -195,6 +200,16 @@ export default function HotspotMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
+  // Which basemap is live, and the theme its tiles were built with, so the CARTO
+  // fallback can be re-themed on toggle (Mappls re-themes via a CSS filter instead).
+  const basemapRef = useRef<"mappls" | "carto" | null>(null);
+  const cartoLightRef = useRef<boolean | null>(null);
+  // Mappls keys its internal map registry by container id and, on re-init with an id
+  // it has seen before, tries to tear down the previous (already-removed) instance —
+  // which throws. A fresh id per mount sidesteps that, so Mappls survives navigation.
+  const [mapId] = useState(
+    () => "raaste-basemap-" + Math.random().toString(36).slice(2, 9)
+  );
   const [ready, setReady] = useState(false);
   // Seed from the current theme so the map mounts with the right palette. This
   // component is client-only (dynamic, ssr:false), so reading the DOM here is safe
@@ -254,16 +269,27 @@ export default function HotspotMap({
 
     (async () => {
       let map: any = null;
+      let kind: "mappls" | "carto" = "carto";
       if (useMappls) {
         try {
           map = await createMapplsMap(container, center);
+          kind = "mappls";
         } catch (e) {
           console.warn("Mappls basemap unavailable, using CARTO:", e);
           map = null;
         }
       }
-      if (!map && !cancelled) map = createCartoMap(container, center);
-      if (map) setup(map);
+      if (!map && !cancelled) {
+        const light =
+          document.documentElement.getAttribute("data-theme") === "light";
+        map = createCartoMap(container, center, light);
+        cartoLightRef.current = light;
+        kind = "carto";
+      }
+      if (map) {
+        basemapRef.current = kind;
+        setup(map);
+      }
     })();
 
     return () => {
@@ -274,6 +300,8 @@ export default function HotspotMap({
       } catch {}
       mapRef.current = null;
       overlayRef.current = null;
+      basemapRef.current = null;
+      cartoLightRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -292,6 +320,18 @@ export default function HotspotMap({
     });
     return () => obs.disconnect();
   }, []);
+
+  // Re-theme the CARTO fallback basemap when the theme changes. (Mappls re-themes
+  // through a CSS filter on its canvas, so this only applies to the CARTO map.)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || basemapRef.current !== "carto") return;
+    if (cartoLightRef.current === isLight) return;
+    cartoLightRef.current = isLight;
+    try {
+      map.setStyle(cartoStyle(isLight));
+    } catch {}
+  }, [isLight, ready]);
 
   // fly to a selected station's hotspots
   useEffect(() => {
@@ -652,7 +692,7 @@ export default function HotspotMap({
     <div className="absolute inset-0">
       <div
         ref={containerRef}
-        id="raaste-basemap"
+        id={mapId}
         className="h-full w-full"
         role="region"
         aria-label="Map of Bengaluru parking hotspots"
