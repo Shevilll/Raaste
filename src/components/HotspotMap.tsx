@@ -7,7 +7,7 @@ import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Hotspot, Point, CongestionEvent } from "@/lib/types";
+import type { Hotspot, Point, CongestionEvent, Junction } from "@/lib/types";
 
 // A single simulated live-feed ping (one incoming "report" on the map).
 type Ping = { id: number; lng: number; lat: number; born: number };
@@ -154,6 +154,10 @@ export interface MapProps {
   route: Hotspot[] | null;
   showLive: boolean;
   onSelect: (h: Hotspot | null) => void;
+  junctions?: Junction[];
+  showJunctions?: boolean;
+  selectedJunctionId?: string | null;
+  onSelectJunction?: (j: Junction | null) => void;
 }
 
 export default function HotspotMap({
@@ -168,6 +172,10 @@ export default function HotspotMap({
   focusBounds,
   route,
   showLive,
+  junctions = [],
+  showJunctions = false,
+  selectedJunctionId = null,
+  onSelectJunction,
   onSelect,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -360,6 +368,38 @@ export default function HotspotMap({
       );
     }
 
+    if (showJunctions && junctions.length) {
+      layers.push(
+        new ScatterplotLayer<Junction>({
+          id: "junctions",
+          data: junctions,
+          getPosition: (j: Junction) => [j.lng, j.lat] as [number, number],
+          getRadius: (j: Junction) => 90 + (j.score / 100) * 520,
+          radiusUnits: "meters",
+          radiusMinPixels: 5,
+          radiusMaxPixels: 30,
+          stroked: true,
+          filled: true,
+          lineWidthMinPixels: 2,
+          getFillColor: (j: Junction) =>
+            (j.id === selectedJunctionId
+              ? [255, 255, 255, 235]
+              : [56, 189, 248, 70]) as [number, number, number, number],
+          getLineColor: (j: Junction) =>
+            (j.id === selectedJunctionId
+              ? [255, 255, 255, 255]
+              : [56, 189, 248, 230]) as [number, number, number, number],
+          pickable: true,
+          onClick: (info: PickingInfo<Junction>) =>
+            onSelectJunction?.(info.object ?? null),
+          updateTriggers: {
+            getFillColor: selectedJunctionId,
+            getLineColor: selectedJunctionId,
+          },
+        })
+      );
+    }
+
     if (route && route.length) {
       layers.push(
         new PathLayer<{ path: [number, number][] }>({
@@ -406,13 +446,33 @@ export default function HotspotMap({
 
     overlay.setProps({
       layers,
-      getTooltip: (info: PickingInfo<Hotspot>) => {
+      getTooltip: (info: PickingInfo<Hotspot | Junction>) => {
         const o = info.object;
-        if (!o || o.rank === undefined) return null;
+        if (!o) return null;
+        if (info.layer?.id === "junctions") {
+          const j = o as Junction;
+          return {
+            html: `<b>${j.name}</b><br/>${j.count.toLocaleString(
+              "en-IN"
+            )} violations<br/>#${j.rank} junction · score ${j.score}`,
+            style: {
+              background: "#0b1220",
+              color: "#e5e7eb",
+              fontSize: "12px",
+              padding: "6px 8px",
+              borderRadius: "6px",
+              border: "1px solid #243044",
+              maxWidth: "220px",
+              whiteSpace: "normal",
+            },
+          };
+        }
+        const h = o as Hotspot;
+        if (h.rank === undefined) return null;
         return {
-          html: `<b>#${o.rank} · score ${o.score}</b><br/>${o.count.toLocaleString(
+          html: `<b>#${h.rank} · score ${h.score}</b><br/>${h.count.toLocaleString(
             "en-IN"
-          )} violations<br/>${o.station ?? ""}`,
+          )} violations<br/>${h.station ?? ""}`,
           style: {
             background: "#0b1220",
             color: "#e5e7eb",
@@ -438,6 +498,10 @@ export default function HotspotMap({
     route,
     isLight,
     onSelect,
+    junctions,
+    showJunctions,
+    selectedJunctionId,
+    onSelectJunction,
   ]);
 
   // Live-feed simulation. Spawns amber pings at random (score-weighted) hotspots
