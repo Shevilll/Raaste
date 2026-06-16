@@ -730,7 +730,7 @@ function Mini({ label, value }: { label: string; value: string }) {
 
 function Legend() {
   return (
-    <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-md border border-[var(--border)] bg-[var(--surface)]/95 px-3 py-2 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur">
+    <div className="pointer-events-none absolute right-3 top-24 z-10 rounded-md border border-[var(--border)] bg-[var(--surface)]/95 px-3 py-2 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur">
       <div className="mb-1 uppercase tracking-wider">Violation density</div>
       <div className="flex items-center gap-1">
         <span>low</span>
