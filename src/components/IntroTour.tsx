@@ -1,0 +1,131 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const STORAGE_KEY = "raaste_tour_seen";
+
+const STEPS = [
+  {
+    title: "Welcome to Raaste",
+    body: "Parking-congestion intelligence for Bengaluru Traffic Police, built on 298,450 real BTP violations.",
+  },
+  {
+    title: "Find the worst zones",
+    body: "The map shows impact-scored hotspots; click any to see its peak hour, offences and nearby congestion.",
+  },
+  {
+    title: "See it across the day",
+    body: "Use the time scrubber up top (▶ to animate) to watch hotspots shift by hour and day.",
+  },
+  {
+    title: "Act on it",
+    body: "Turn on Congestion to see the parking↔congestion proof, switch on Forecast, or hit Patrol plan for a deployable schedule.",
+  },
+];
+
+export default function IntroTour() {
+  // Start hidden; only reveal after the mount-time localStorage check so we
+  // never flash the overlay for returning visitors.
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        setOpen(true);
+      }
+    } catch {
+      // Private mode / storage blocked — just skip the tour quietly.
+    }
+  }, []);
+
+  function markSeen() {
+    try {
+      localStorage.setItem(STORAGE_KEY, "1");
+    } catch {
+      // Ignore — closing the overlay is what matters to the user.
+    }
+    setOpen(false);
+  }
+
+  if (!open) return null;
+
+  const isFirst = step === 0;
+  const isLast = step === STEPS.length - 1;
+  const current = STEPS[step];
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+      <div
+        className="relative w-[440px] max-w-full rounded-xl border border-slate-700 bg-[#0a0f1c] shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="raaste-tour-title"
+      >
+        <button
+          onClick={markSeen}
+          className="absolute right-3 top-3 text-slate-400 transition-colors hover:text-white"
+          aria-label="Dismiss tour"
+        >
+          ✕
+        </button>
+
+        <div className="px-6 pb-5 pt-7">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-amber-400/90">
+            Step {step + 1} of {STEPS.length}
+          </div>
+
+          <h2
+            id="raaste-tour-title"
+            className="text-lg font-semibold text-white"
+          >
+            {current.title}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">
+            {current.body}
+          </p>
+
+          {/* Step dots */}
+          <div className="mt-5 flex items-center gap-1.5">
+            {STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === step ? "w-5 bg-amber-500" : "w-1.5 bg-slate-700"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between border-t border-slate-800 px-6 py-3">
+          <button
+            onClick={markSeen}
+            className="text-xs font-medium text-slate-400 transition-colors hover:text-slate-200"
+          >
+            Skip
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setStep((s) => Math.max(0, s - 1))}
+              disabled={isFirst}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => {
+                if (isLast) markSeen();
+                else setStep((s) => Math.min(STEPS.length - 1, s + 1));
+              }}
+              className="rounded-lg bg-amber-500 px-4 py-1.5 text-xs font-semibold text-slate-950 transition-colors hover:bg-amber-400"
+            >
+              {isLast ? "Get started" : "Next"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

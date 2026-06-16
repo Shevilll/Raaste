@@ -1,29 +1,65 @@
 "use client";
 
-import type { Hotspot } from "@/lib/types";
+import { useMemo, useState } from "react";
+import type { Congestion, Hotspot } from "@/lib/types";
 import { fmt, hourRange } from "@/lib/format";
+
+type Mode = "impact" | "congestion";
 
 export default function OptimizerModal({
   hotspots,
   totalImpact,
   teams,
   setTeams,
+  congestion,
   onClose,
 }: {
   hotspots: Hotspot[];
   totalImpact: number;
   teams: number;
   setTeams: (n: number) => void;
+  congestion: Congestion | null;
   onClose: () => void;
 }) {
-  const plan = hotspots.slice(0, teams);
+  const [mode, setMode] = useState<Mode>("impact");
+
+  // Fall back to plain impact ranking if we have no congestion data to lean on.
+  const activeMode: Mode = congestion ? mode : "impact";
+
+  // Count of real congestion events logged within range of a hotspot.
+  const nearbyOf = (h: Hotspot) => congestion?.nearby[h.id] ?? 0;
+
+  const ranked = useMemo(() => {
+    if (activeMode === "congestion" && congestion) {
+      // Re-rank everything by impact weighted up by how many congestion
+      // events sit on the zone, so we favour spots that are both painful
+      // and actually clogged on the ground.
+      return [...hotspots].sort((a, b) => {
+        const sa = a.impact * (1 + (congestion.nearby[a.id] ?? 0));
+        const sb = b.impact * (1 + (congestion.nearby[b.id] ?? 0));
+        return sb - sa;
+      });
+    }
+    return hotspots;
+  }, [activeMode, congestion, hotspots]);
+
+  const plan = ranked.slice(0, teams);
   const covered = plan.reduce((s, h) => s + h.impact, 0);
   const pct = totalImpact ? Math.round((covered / totalImpact) * 1000) / 10 : 0;
   const violations = plan.reduce((s, h) => s + h.count, 0);
+  const planEvents = plan.reduce((s, h) => s + nearbyOf(h), 0);
 
   const download = () => {
     const rows = [
-      ["Team", "Zone (station)", "Location", "Deploy at", "Impact score", "Violations"],
+      [
+        "Team",
+        "Zone (station)",
+        "Location",
+        "Deploy at",
+        "Impact score",
+        "Violations",
+        "Congestion nearby",
+      ],
     ];
     plan.forEach((h, i) =>
       rows.push([
@@ -33,6 +69,7 @@ export default function OptimizerModal({
         hourRange(h.peakHour ?? -1),
         String(h.score),
         String(h.count),
+        String(nearbyOf(h)),
       ])
     );
     const csv = rows
@@ -44,6 +81,82 @@ export default function OptimizerModal({
     a.download = "raaste-patrol-plan.csv";
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const printPlan = () => {
+    const esc = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const modeLabel =
+      activeMode === "congestion" ? "Target congestion" : "By impact";
+
+    const body = plan
+      .map(
+        (h, i) => `
+          <tr>
+            <td class="num">${i + 1}</td>
+            <td>${esc(h.station || "—")}</td>
+            <td class="loc">${esc(h.location || "")}</td>
+            <td>${esc(hourRange(h.peakHour ?? -1))}</td>
+            <td class="num">${h.score}</td>
+            <td class="num">${nearbyOf(h)}</td>
+          </tr>`
+      )
+      .join("");
+
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Raaste — Patrol Plan</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #111; background: #fff; margin: 32px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #555; font-size: 12px; margin: 0 0 4px; }
+  .stat { color: #333; font-size: 13px; margin: 12px 0 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th { background: #f2f2f2; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #444; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  td.loc { color: #555; font-size: 11px; }
+  .foot { margin-top: 16px; color: #777; font-size: 11px; }
+</style>
+</head>
+<body>
+  <h1>Raaste — Patrol Plan</h1>
+  <p class="sub">Bengaluru Traffic Police · parking-congestion enforcement briefing</p>
+  <p class="sub">Mode: ${esc(modeLabel)} · ${teams} patrol team${teams > 1 ? "s" : ""}</p>
+  <p class="stat">
+    Covers ${pct}% of city-wide parking-violation impact.${
+      activeMode === "congestion"
+        ? ` These ${plan.length} zones sit on ${fmt(planEvents)} logged congestion event${planEvents === 1 ? "" : "s"}.`
+        : ""
+    }
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th class="num">Team</th>
+        <th>Station</th>
+        <th>Location</th>
+        <th>Deploy at</th>
+        <th class="num">Score</th>
+        <th class="num">Congestion nearby</th>
+      </tr>
+    </thead>
+    <tbody>${body}</tbody>
+  </table>
+  <p class="foot">${fmt(violations)} violations across ${teams} zones.</p>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank", "width=900,height=700");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
   };
 
   return (
@@ -74,7 +187,32 @@ export default function OptimizerModal({
         </div>
 
         <div className="border-b border-slate-800 px-4 py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setMode("impact")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                activeMode === "impact"
+                  ? "bg-amber-500 text-slate-950"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
+            >
+              By impact
+            </button>
+            {congestion && (
+              <button
+                onClick={() => setMode("congestion")}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  activeMode === "congestion"
+                    ? "bg-amber-500 text-slate-950"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                Target congestion
+              </button>
+            )}
+          </div>
+
+          <div className="mt-3 flex items-center gap-3">
             <span className="shrink-0 text-xs text-slate-400">Patrol teams</span>
             <input
               type="range"
@@ -95,6 +233,17 @@ export default function OptimizerModal({
               {teams} team{teams > 1 ? "s" : ""} to these zones.
             </span>
           </div>
+          {activeMode === "congestion" && (
+            <div className="mt-1.5 text-xs text-slate-300">
+              These{" "}
+              <span className="font-semibold text-white">{plan.length}</span>{" "}
+              zones sit on{" "}
+              <span className="font-semibold text-amber-400">
+                {fmt(planEvents)}
+              </span>{" "}
+              logged congestion event{planEvents === 1 ? "" : "s"}.
+            </div>
+          )}
           <div className="mt-2 h-2 rounded bg-slate-800">
             <div
               className="h-2 rounded bg-amber-500 transition-all"
@@ -114,25 +263,37 @@ export default function OptimizerModal({
               </tr>
             </thead>
             <tbody>
-              {plan.map((h, i) => (
-                <tr key={h.id} className="border-t border-slate-800/60">
-                  <td className="px-2 py-1.5 align-top font-semibold text-amber-500">
-                    {i + 1}
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <div className="text-slate-200">{h.station || "—"}</div>
-                    <div className="max-w-[300px] truncate text-[10px] text-slate-500">
-                      {h.location}
-                    </div>
-                  </td>
-                  <td className="px-2 py-1.5 align-top text-slate-300">
-                    {hourRange(h.peakHour ?? -1)}
-                  </td>
-                  <td className="px-2 py-1.5 text-right align-top text-slate-300">
-                    {h.score}
-                  </td>
-                </tr>
-              ))}
+              {plan.map((h, i) => {
+                const near = nearbyOf(h);
+                return (
+                  <tr key={h.id} className="border-t border-slate-800/60">
+                    <td className="px-2 py-1.5 align-top font-semibold text-amber-500">
+                      {i + 1}
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-200">
+                          {h.station || "—"}
+                        </span>
+                        {congestion && near > 0 && (
+                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-medium text-slate-400">
+                            {near} congestion
+                          </span>
+                        )}
+                      </div>
+                      <div className="max-w-[300px] truncate text-[10px] text-slate-500">
+                        {h.location}
+                      </div>
+                    </td>
+                    <td className="px-2 py-1.5 align-top text-slate-300">
+                      {hourRange(h.peakHour ?? -1)}
+                    </td>
+                    <td className="px-2 py-1.5 text-right align-top text-slate-300">
+                      {h.score}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -141,12 +302,20 @@ export default function OptimizerModal({
           <span className="text-[11px] text-slate-500">
             {fmt(violations)} violations across {teams} zones
           </span>
-          <button
-            onClick={download}
-            className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400"
-          >
-            Download patrol plan (CSV)
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={printPlan}
+              className="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+            >
+              Print plan
+            </button>
+            <button
+              onClick={download}
+              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+            >
+              Download patrol plan (CSV)
+            </button>
+          </div>
         </div>
       </div>
     </div>

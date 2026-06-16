@@ -14,6 +14,8 @@ import Trends from "@/components/Trends";
 import TimeControls from "@/components/TimeControls";
 import OptimizerModal from "@/components/OptimizerModal";
 import MethodologyModal from "@/components/MethodologyModal";
+import TypeFilter from "@/components/TypeFilter";
+import IntroTour from "@/components/IntroTour";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
@@ -28,6 +30,7 @@ export default function Dashboard() {
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [station, setStation] = useState<string | null>(null);
+  const [typeIdx, setTypeIdx] = useState<number | null>(null);
   const [hour, setHour] = useState(-1);
   const [dow, setDow] = useState(-1);
   const [playing, setPlaying] = useState(false);
@@ -68,11 +71,14 @@ export default function Dashboard() {
 
   // heatmap points filtered by the active hour / day
   const filteredPoints = useMemo(() => {
-    if (hour < 0 && dow < 0) return points;
+    if (hour < 0 && dow < 0 && typeIdx === null) return points;
     return points.filter(
-      (p) => (hour < 0 || p[4] === hour) && (dow < 0 || p[5] === dow)
+      (p) =>
+        (hour < 0 || p[4] === hour) &&
+        (dow < 0 || p[5] === dow) &&
+        (typeIdx === null || p[2] === typeIdx)
     );
-  }, [points, hour, dow]);
+  }, [points, hour, dow, typeIdx]);
 
   // hotspots: model-predicted when Forecast is on, else historical (re-ranked by hour/day)
   const displayHotspots = useMemo(() => {
@@ -201,6 +207,13 @@ export default function Dashboard() {
                   onSelect={setStation}
                 />
               )}
+              {summary && (
+                <TypeFilter
+                  legend={summary.typeLegend}
+                  selected={typeIdx}
+                  onSelect={setTypeIdx}
+                />
+              )}
               <RankedList
                 hotspots={displayHotspots}
                 title={listTitle}
@@ -250,6 +263,7 @@ export default function Dashboard() {
           totalImpact={summary.totalImpact}
           teams={teams}
           setTeams={setTeams}
+          congestion={congestion}
           onClose={() => setOptimizerOpen(false)}
         />
       )}
@@ -262,6 +276,8 @@ export default function Dashboard() {
           onClose={() => setMethodOpen(false)}
         />
       )}
+
+      <IntroTour />
     </div>
   );
 }
