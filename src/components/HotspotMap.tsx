@@ -230,6 +230,7 @@ export default function HotspotMap({
     if (!container || mapRef.current) return;
     let cancelled = false;
     let ro: ResizeObserver | null = null;
+    let resizeTimer = 0;
 
     const useMappls =
       !!MAPPLS_KEY &&
@@ -253,10 +254,18 @@ export default function HotspotMap({
           map.resize();
         } catch {}
       });
+      // Resizing the GL map reallocates its drawing buffer, which clears the
+      // canvas for a frame. While dragging the side panel the container resizes
+      // every frame, so resizing on each tick blanks the basemap continuously
+      // (only the deck.gl overlay survives) — the "whole map flickers" bug.
+      // Coalesce the resize so it runs once the size settles instead.
       ro = new ResizeObserver(() => {
-        try {
-          map.resize();
-        } catch {}
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => {
+          try {
+            map.resize();
+          } catch {}
+        }, 100);
       });
       ro.observe(container);
       try {
@@ -295,6 +304,7 @@ export default function HotspotMap({
     return () => {
       cancelled = true;
       ro?.disconnect();
+      window.clearTimeout(resizeTimer);
       try {
         mapRef.current?.remove();
       } catch {}
@@ -694,6 +704,10 @@ export default function HotspotMap({
         ref={containerRef}
         id={mapId}
         className="h-full w-full"
+        // Basemap-coloured backdrop so that if a resize briefly exposes an edge
+        // before the debounced map.resize() catches up, it blends in instead of
+        // flashing the page background.
+        style={{ background: isLight ? "#e8edf3" : "#0a0f1c" }}
         role="region"
         aria-label="Map of Bengaluru parking hotspots"
       />

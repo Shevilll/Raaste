@@ -437,12 +437,11 @@ export default function Dashboard() {
             set={setShowCongestion}
             label="Congestion"
           />
-          {blind && (
-            <Toggle on={showBlind} set={setShowBlind} label="Blind spots" />
-          )}
-          {prediction && (
-            <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
-          )}
+          {/* Rendered unconditionally so the toolbar doesn't reflow when the
+              blindspot/prediction data finishes loading on reload — the layers
+              simply stay empty until their data arrives. */}
+          <Toggle on={showBlind} set={setShowBlind} label="Blind spots" />
+          <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
           <Toggle on={showLive} set={setShowLive} label="Live" />
           <Toggle on={showJunctions} set={setShowJunctions} label="Junctions" />
         </div>
