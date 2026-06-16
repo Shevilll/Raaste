@@ -75,13 +75,13 @@ export default function MethodologyModal({
           </Section>
 
           <Section title="The forecast model">
-            A <b className="text-[var(--text-strong)]">RandomForest (120 trees)</b> predicts violation
+            A <b className="text-[var(--text-strong)]">RandomForest ensemble</b> predicts violation
             intensity per cell, per hour, per day-of-week. Held-out accuracy:{" "}
-            <b className="text-[var(--text-strong)]">R² {prediction?.metrics.r2 ?? 0.59}</b>. What
+            <b className="text-[var(--text-strong)]">R² {prediction?.metrics.r2 ?? 0.65}</b>. What
             drives it:{" "}
             {(prediction?.importances ?? [])
               .map(([k, v]) => `${k} ${Math.round(v * 100)}%`)
-              .join(", ") || "location 59%, hour 28%, day 12%"}
+              .join(", ") || "location 57%, hour 27%, day 15%"}
             . Forecast mode ranks zones by this prediction, so patrols can be pre-positioned
             before violations build up.
           </Section>

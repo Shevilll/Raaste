@@ -27,6 +27,7 @@ OUT = os.path.normpath(os.path.join(HERE, "..", "public", "data"))
 BBOX = (11.5, 14.0, 76.5, 78.5)
 CELL = 0.002
 TOP_CELLS = 1200
+ALPHA = 0.6  # blend weight on the count-scale forest (the rest on the log-scale forest)
 IST = timedelta(hours=5, minutes=30)
 
 
@@ -113,20 +114,31 @@ def main():
     y = np.array(y, dtype=float)
     print(f"samples={len(y)}")
 
-    Xtr, Xte, ytr, yte = train_test_split(
-        X, np.log1p(y), test_size=0.2, random_state=42
-    )
-    model = RandomForestRegressor(
-        n_estimators=120, max_depth=18, n_jobs=-1, random_state=42
-    )
-    model.fit(Xtr, ytr)
-    pred = np.expm1(model.predict(Xte))
-    true = np.expm1(yte)
-    r2 = r2_score(true, pred)
-    mae = mean_absolute_error(true, pred)
+    # Two forests on the SAME split. One trains on the raw count scale: squared error
+    # is exactly what R^2 measures, so it nails the big peaks that dominate the variance.
+    # One trains on log1p: steadier across the many small-count slots, so it keeps MAE low.
+    # Blending the two gives the linear forest's variance-explained without the log->linear
+    # back-transform under-predicting peaks (which is what capped the old single-model R^2).
+    idx = np.arange(len(y))
+    itr, ite = train_test_split(idx, test_size=0.2, random_state=42)
+    Xtr, Xte, ytr, yte = X[itr], X[ite], y[itr], y[ite]
+
+    rf_lin = RandomForestRegressor(n_estimators=200, max_depth=18, n_jobs=-1, random_state=42)
+    rf_log = RandomForestRegressor(n_estimators=200, max_depth=18, n_jobs=-1, random_state=42)
+    rf_lin.fit(Xtr, ytr)
+    rf_log.fit(Xtr, np.log1p(ytr))
+
+    def blend(M):  # feature rows -> non-negative blended count prediction
+        plin = np.clip(rf_lin.predict(M), 0, None)
+        plog = np.clip(np.expm1(rf_log.predict(M)), 0, None)
+        return ALPHA * plin + (1 - ALPHA) * plog
+
+    pred = blend(Xte)
+    r2 = r2_score(yte, pred)
+    mae = mean_absolute_error(yte, pred)
     print(f"R2={r2:.3f} MAE={mae:.2f}")
 
-    imp = model.feature_importances_
+    imp = ALPHA * rf_lin.feature_importances_ + (1 - ALPHA) * rf_log.feature_importances_
     groups = {
         "location": imp[0] + imp[1],
         "hour of day": imp[2] + imp[3],
@@ -143,8 +155,8 @@ def main():
     h0 = hotspots[0]
     pred_hourly = []
     for hh in range(24):
-        rows = [feats(h0["lat"], h0["lng"], hh, dw) for dw in range(7)]
-        pred_hourly.append(round(float(np.expm1(model.predict(np.array(rows))).sum()), 1))
+        rows = np.array([feats(h0["lat"], h0["lng"], hh, dw) for dw in range(7)])
+        pred_hourly.append(round(float(blend(rows).sum()), 1))
 
     # per-hotspot predicted hourly curve (a typical day) — powers the Forecast view
     fr = []
@@ -152,13 +164,13 @@ def main():
         for hh in range(24):
             for dw in range(7):
                 fr.append(feats(h["lat"], h["lng"], hh, dw))
-    fp = np.expm1(model.predict(np.array(fr))).reshape(len(hotspots), 24, 7).mean(axis=2)
+    fp = blend(np.array(fr)).reshape(len(hotspots), 24, 7).mean(axis=2)
     forecast = {
         h["id"]: [round(float(v), 2) for v in fp[i]] for i, h in enumerate(hotspots)
     }
 
     out = {
-        "model": "RandomForestRegressor · 120 trees",
+        "model": "RandomForest ensemble · count + log scale",
         "target": "parking violations per ~220 m cell, per hour-of-week",
         "metrics": {
             "r2": round(float(r2), 3),
