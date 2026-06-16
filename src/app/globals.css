@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Dark-mode the Mappls (production) basemap so it matches the dark UI. This only
+   matches the Mappls canvas (.mapboxgl-canvas); the CARTO fallback canvas
+   (.maplibregl-canvas) and our deck.gl overlay (#deckgl-overlay) are untouched. */
+.mapboxgl-canvas {
+  filter: invert(0.92) hue-rotate(185deg) brightness(0.9) contrast(0.95)
+    saturate(0.65);
+}
