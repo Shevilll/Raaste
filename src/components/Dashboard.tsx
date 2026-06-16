@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type {
@@ -44,6 +49,13 @@ const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
   ssr: false,
 });
 
+// side panel resize bounds (desktop only) — never wider than half the screen
+const MIN_PANEL_W = 300;
+const DEFAULT_PANEL_W = 340;
+const PANEL_W_KEY = "raaste:panelW";
+const clampPanelW = (w: number) =>
+  Math.max(MIN_PANEL_W, Math.min(w, window.innerWidth / 2));
+
 export default function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
@@ -80,6 +92,58 @@ export default function Dashboard() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [panelW, setPanelW] = useState(DEFAULT_PANEL_W);
+  const resizing = useRef(false);
+
+  // restore the saved panel width, and keep it within half the screen on resize
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(PANEL_W_KEY));
+    if (saved) setPanelW(clampPanelW(saved));
+    const onResize = () => setPanelW((w) => clampPanelW(w));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // persist the width once dragging settles
+  useEffect(() => {
+    const id = window.setTimeout(
+      () => localStorage.setItem(PANEL_W_KEY, String(panelW)),
+      200
+    );
+    return () => window.clearTimeout(id);
+  }, [panelW]);
+
+  const startResize = useCallback((e: ReactPointerEvent) => {
+    e.preventDefault();
+    resizing.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  const onResizeMove = useCallback((e: ReactPointerEvent) => {
+    if (!resizing.current) return;
+    // panel hugs the left edge, so the pointer's x is the new width
+    setPanelW(clampPanelW(e.clientX));
+  }, []);
+
+  const endResize = useCallback((e: ReactPointerEvent) => {
+    if (!resizing.current) return;
+    resizing.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  const nudgeResize = useCallback((e: ReactKeyboardEvent) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setPanelW((w) => clampPanelW(w - 16));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setPanelW((w) => clampPanelW(w + 16));
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -338,9 +402,12 @@ export default function Dashboard() {
             Patrol plan
           </button>
           <Link
-            href={`/briefing${
-              station ? `?station=${encodeURIComponent(station)}` : ""
-            }`}
+            href="/briefing"
+            onClick={() => {
+              // hand the selected station to the beat sheet without putting it in the URL
+              if (station) sessionStorage.setItem("raaste:station", station);
+              else sessionStorage.removeItem("raaste:station");
+            }}
             className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
           >
             <ClipboardList className="h-3.5 w-3.5" aria-hidden />
@@ -382,7 +449,10 @@ export default function Dashboard() {
       </header>
 
       <div className="relative flex flex-1 flex-col overflow-visible lg:flex-row lg:overflow-hidden">
-        <aside className="z-10 order-2 flex w-full shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:order-none lg:w-[340px] lg:overflow-y-auto lg:border-t-0 lg:border-r lg:pb-3">
+        <aside
+          style={{ "--panel-w": `${panelW}px` } as CSSProperties}
+          className="z-10 order-2 flex w-full shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:order-none lg:w-[var(--panel-w)] lg:overflow-y-auto lg:border-t-0 lg:pb-3"
+        >
           {summary && <StatsPanel summary={summary} />}
           {congestion && (
             <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
@@ -452,6 +522,20 @@ export default function Dashboard() {
             </>
           )}
         </aside>
+
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize side panel"
+          aria-valuenow={Math.round(panelW)}
+          aria-valuemin={MIN_PANEL_W}
+          tabIndex={0}
+          onPointerDown={startResize}
+          onPointerMove={onResizeMove}
+          onPointerUp={endResize}
+          onKeyDown={nudgeResize}
+          className="z-20 hidden w-1.5 shrink-0 cursor-col-resize touch-none bg-[var(--border)] transition-colors hover:bg-[var(--accent-text)] focus-visible:bg-[var(--accent-text)] focus-visible:outline-none lg:block"
+        />
 
         <main className="relative order-1 h-[55dvh] min-h-[420px] w-full lg:order-none lg:h-auto lg:min-h-0 lg:flex-1">
           {!loading && summary && (

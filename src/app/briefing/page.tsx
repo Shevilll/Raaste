@@ -41,10 +41,10 @@ export default function BriefingPage() {
         setHotspots(h);
         setCongestion(c);
         setFines(f);
-        // seed the station / shift from the URL so a link opens straight to a briefing
-        const p = new URLSearchParams(window.location.search);
-        const us = p.get("station");
-        const ush = p.get("shift");
+        // seed the station / shift from sessionStorage so a link opens straight to a
+        // briefing without leaking the selection into the URL
+        const us = sessionStorage.getItem("raaste:station");
+        const ush = sessionStorage.getItem("raaste:shift");
         setStation(
           us && s.topStations.some((t: [string, number, number]) => t[0] === us)
             ? us
@@ -65,13 +65,11 @@ export default function BriefingPage() {
     };
   }, []);
 
-  // keep the URL in sync so a briefing can be shared / bookmarked
+  // remember the selection (without touching the URL) so a refresh stays put
   useEffect(() => {
     if (!station) return;
-    const p = new URLSearchParams();
-    p.set("station", station);
-    p.set("shift", shiftId);
-    window.history.replaceState(null, "", `?${p.toString()}`);
+    sessionStorage.setItem("raaste:station", station);
+    sessionStorage.setItem("raaste:shift", shiftId);
   }, [station, shiftId]);
 
   const sheet = useMemo(() => {
