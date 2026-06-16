@@ -12,6 +12,7 @@ import type {
   JunctionsFile,
   Simulator,
   Fines,
+  BlindspotsFile,
 } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
@@ -43,6 +44,8 @@ export default function Dashboard() {
   const [junctionsData, setJunctionsData] = useState<JunctionsFile | null>(null);
   const [sim, setSim] = useState<Simulator | null>(null);
   const [fines, setFines] = useState<Fines | null>(null);
+  const [blind, setBlind] = useState<BlindspotsFile | null>(null);
+  const [blindId, setBlindId] = useState<string | null>(null);
   const [lens, setLens] = useState<"station" | "junction">("station");
   const [junctionId, setJunctionId] = useState<string | null>(null);
   const [showJunctions, setShowJunctions] = useState(false);
@@ -55,6 +58,7 @@ export default function Dashboard() {
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
   const [showCongestion, setShowCongestion] = useState(false);
+  const [showBlind, setShowBlind] = useState(false);
   const [showForecast, setShowForecast] = useState(false);
   const [showLive, setShowLive] = useState(false);
   const [optimizerOpen, setOptimizerOpen] = useState(false);
@@ -75,7 +79,7 @@ export default function Dashboard() {
     };
     (async () => {
       try {
-        const [s, h, p, c, pr, off, jn, sm, fn] = await Promise.all([
+        const [s, h, p, c, pr, off, jn, sm, fn, bl] = await Promise.all([
           getJSON("/data/summary.json"),
           getJSON("/data/hotspots.json"),
           getJSON("/data/points.json"),
@@ -85,6 +89,7 @@ export default function Dashboard() {
           getJSON("/data/junctions.json"),
           getJSON("/data/simulator.json"),
           getJSON("/data/fines.json"),
+          getJSON("/data/blindspots.json"),
         ]);
         if (!alive) return;
         setSummary(s);
@@ -96,6 +101,7 @@ export default function Dashboard() {
         setJunctionsData(jn);
         setSim(sm);
         setFines(fn);
+        setBlind(bl);
         setLoading(false);
       } catch (e) {
         console.warn("data load failed", e);
@@ -258,6 +264,23 @@ export default function Dashboard() {
     ];
   }, [selectedJunction]);
 
+  const selectedBlind =
+    blindId && blind
+      ? blind.blindspots.find((b) => b.id === blindId) ?? null
+      : null;
+
+  const blindFocus = useMemo<
+    [[number, number], [number, number]] | null
+  >(() => {
+    if (!selectedBlind) return null;
+    const { lat, lng } = selectedBlind;
+    const d = 0.012; // ~1.3 km padding box around the blind spot
+    return [
+      [lng - d, lat - d],
+      [lng + d, lat + d],
+    ];
+  }, [selectedBlind]);
+
   const listTitle = showForecast
     ? hour >= 0
       ? `Predicted at ${hourLabel(hour)}`
@@ -302,6 +325,9 @@ export default function Dashboard() {
             set={setShowCongestion}
             label="Congestion"
           />
+          {blind && (
+            <Toggle on={showBlind} set={setShowBlind} label="Blind spots" />
+          )}
           {prediction && (
             <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
           )}
@@ -315,6 +341,17 @@ export default function Dashboard() {
           {summary && <StatsPanel summary={summary} />}
           {congestion && (
             <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
+          )}
+          {blind && blind.count > 0 && (
+            <BlindspotPanel
+              data={blind}
+              selectedId={blindId}
+              onShow={() => setShowBlind(true)}
+              onSelect={(id) => {
+                setShowBlind(true);
+                setBlindId((cur) => (cur === id ? null : id));
+              }}
+            />
           )}
           {summary && (
             <CoverageChart hotspots={hotspots} totalImpact={summary.totalImpact} />
@@ -392,7 +429,7 @@ export default function Dashboard() {
                 showCongestion={showCongestion}
                 showLive={showLive}
                 selectedId={selectedId}
-                focusBounds={junctionFocus ?? focusBounds}
+                focusBounds={blindFocus ?? junctionFocus ?? focusBounds}
                 route={routeZones}
                 onSelect={handleSelect}
                 junctions={junctionsData?.junctions ?? []}
@@ -403,6 +440,13 @@ export default function Dashboard() {
                   setLens("junction");
                   setShowJunctions(true);
                   setJunctionId(j ? j.id : null);
+                }}
+                blindspots={blind?.blindspots ?? []}
+                showBlind={showBlind}
+                selectedBlindId={blindId}
+                onSelectBlind={(b) => {
+                  setShowBlind(true);
+                  setBlindId(b ? b.id : null);
                 }}
               />
             </>
@@ -431,7 +475,7 @@ export default function Dashboard() {
               Patrol route · {route.km.toFixed(1)} km · clear ✕
             </button>
           )}
-          <Legend />
+          <Legend showBlind={showBlind} />
         </main>
       </div>
 
@@ -604,6 +648,91 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
           show on map →
         </button>
       </div>
+    </div>
+  );
+}
+
+function BlindspotPanel({
+  data,
+  selectedId,
+  onSelect,
+  onShow,
+}: {
+  data: BlindspotsFile;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onShow: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--blind-border)] bg-[var(--blind-bg)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--blind-text)]">
+        Enforcement blind spots
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl font-semibold text-[var(--text-strong)]">
+          {data.count}
+        </span>
+        <span className="text-[11px] text-[var(--text-muted)]">
+          corners the city is blind to
+        </span>
+      </div>
+      <div className="text-xs text-[var(--text)]">
+        carry{" "}
+        <span className="font-semibold text-[var(--blind-text)]">
+          {data.pctCongInBlind}%
+        </span>{" "}
+        of the city&apos;s logged congestion-hours but just{" "}
+        <span className="font-semibold text-[var(--blind-text)]">
+          {data.pctEnforcementInBlind}%
+        </span>{" "}
+        of its parking enforcement — heavy congestion, almost no tickets.
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-faint)]">
+        <span>
+          {fmt(data.totalEvents)} ASTraM events vs {fmt(data.totalEnforcement)}{" "}
+          tickets
+        </span>
+        <button
+          onClick={onShow}
+          className="text-[var(--blind-text)] hover:opacity-80"
+        >
+          show on map →
+        </button>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {data.blindspots.slice(0, 8).map((b) => (
+          <button
+            key={b.id}
+            onClick={() => onSelect(b.id)}
+            className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left lg:py-1.5 ${
+              b.id === selectedId
+                ? "bg-violet-500/20"
+                : "bg-[var(--chip)] hover:bg-[var(--track)]"
+            }`}
+          >
+            <span className="w-6 shrink-0 text-xs font-semibold text-[var(--blind-text)]">
+              #{b.rank}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs text-[var(--text)]">
+                {b.name}
+              </span>
+              <span className="block truncate text-[10px] text-[var(--text-faint)]">
+                {fmt(b.events)} events · {b.enforcement} tickets · {b.station}
+              </span>
+            </span>
+            <span className="shrink-0 text-[10px] font-semibold text-[var(--blind-text)]">
+              {b.congHours}h
+            </span>
+          </button>
+        ))}
+      </div>
+      {data.count > 8 && (
+        <div className="mt-1.5 text-[9px] text-[var(--text-faint)]">
+          showing top 8 of {data.count} · ranked by the congestion-to-enforcement
+          gap
+        </div>
+      )}
     </div>
   );
 }
@@ -788,7 +917,7 @@ function HotspotDetail({
   );
 }
 
-function Legend() {
+function Legend({ showBlind }: { showBlind: boolean }) {
   return (
     <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-md border border-[var(--border)] bg-[var(--surface)]/95 px-2.5 py-2 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur lg:bottom-auto lg:left-auto lg:right-3 lg:top-24 lg:px-3">
       <div className="mb-1 uppercase tracking-wider">Violation density</div>
@@ -804,6 +933,12 @@ function Legend() {
         <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff6e28]" />
         <span>hotspot (size = impact score)</span>
       </div>
+      {showBlind && (
+        <div className="mt-1.5 flex items-center gap-1">
+          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border-2 border-[#a855f7] bg-transparent" />
+          <span>blind spot (congestion, little enforcement)</span>
+        </div>
+      )}
     </div>
   );
 }

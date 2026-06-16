@@ -54,6 +54,8 @@ body {
   --danger-bg: rgba(127, 29, 29, 0.18); --danger-border: rgba(153, 27, 27, 0.45);
   --info-text: #7dd3fc; --info-bg: rgba(8, 47, 73, 0.12);
   --info-border: rgba(12, 74, 110, 0.4);
+  --blind-text: #c4b5fd; --blind-bg: rgba(76, 29, 149, 0.16);
+  --blind-border: rgba(109, 40, 217, 0.42);
   --heat-grad: #163b6e, #22a0a0 40%, #d62828;
 }
 html[data-theme="light"] {
@@ -64,6 +66,7 @@ html[data-theme="light"] {
   --accent-text: #b45309; --danger-text: #b91c1c;
   --danger-bg: #fef2f2; --danger-border: #fecaca;
   --info-text: #0369a1; --info-bg: #f0f9ff; --info-border: #bae6fd;
+  --blind-text: #6d28d9; --blind-bg: #f5f3ff; --blind-border: #ddd6fe;
   --heat-grad: #fde68a, #f59e0b 45%, #b91c1c;
 }
 

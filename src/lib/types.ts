@@ -141,6 +141,34 @@ export interface Simulator {
   events: number[];
 }
 
+export interface Blindspot {
+  id: string;
+  rank: number;
+  lat: number;
+  lng: number;
+  name: string;
+  station: string;
+  events: number;
+  congHours: number;
+  enforcement: number;
+  topCause: string;
+  score: number;
+}
+
+export interface BlindspotsFile {
+  cellM: number;
+  enforceWithinM: number;
+  minEvents: number;
+  count: number;
+  totalEvents: number;
+  totalCongHours: number;
+  totalEnforcement: number;
+  pctCongInBlind: number;
+  pctEnforcementInBlind: number;
+  causeLegend: string[];
+  blindspots: Blindspot[];
+}
+
 export interface Fines {
   totalViolations: number;
   totalPotentialCrore: number;

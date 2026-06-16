@@ -7,7 +7,13 @@ import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Hotspot, Point, CongestionEvent, Junction } from "@/lib/types";
+import type {
+  Hotspot,
+  Point,
+  CongestionEvent,
+  Junction,
+  Blindspot,
+} from "@/lib/types";
 
 // A single simulated live-feed ping (one incoming "report" on the map).
 type Ping = { id: number; lng: number; lat: number; born: number };
@@ -158,6 +164,10 @@ export interface MapProps {
   showJunctions?: boolean;
   selectedJunctionId?: string | null;
   onSelectJunction?: (j: Junction | null) => void;
+  blindspots?: Blindspot[];
+  showBlind?: boolean;
+  selectedBlindId?: string | null;
+  onSelectBlind?: (b: Blindspot | null) => void;
 }
 
 export default function HotspotMap({
@@ -176,6 +186,10 @@ export default function HotspotMap({
   showJunctions = false,
   selectedJunctionId = null,
   onSelectJunction,
+  blindspots = [],
+  showBlind = false,
+  selectedBlindId = null,
+  onSelectBlind,
   onSelect,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -337,6 +351,38 @@ export default function HotspotMap({
       );
     }
 
+    if (showBlind && blindspots.length) {
+      layers.push(
+        new ScatterplotLayer<Blindspot>({
+          id: "blindspots",
+          data: blindspots,
+          getPosition: (b: Blindspot) => [b.lng, b.lat] as [number, number],
+          getRadius: (b: Blindspot) => 160 + Math.sqrt(b.events) * 55,
+          radiusUnits: "meters",
+          radiusMinPixels: 7,
+          radiusMaxPixels: 42,
+          stroked: true,
+          filled: true,
+          lineWidthMinPixels: 2,
+          getFillColor: (b: Blindspot) =>
+            (b.id === selectedBlindId
+              ? [216, 180, 254, 110]
+              : [168, 85, 247, 45]) as [number, number, number, number],
+          getLineColor: (b: Blindspot) =>
+            (b.id === selectedBlindId
+              ? [233, 213, 255, 255]
+              : [192, 132, 252, 235]) as [number, number, number, number],
+          pickable: true,
+          onClick: (info: PickingInfo<Blindspot>) =>
+            onSelectBlind?.(info.object ?? null),
+          updateTriggers: {
+            getFillColor: selectedBlindId,
+            getLineColor: selectedBlindId,
+          },
+        })
+      );
+    }
+
     if (showHotspots) {
       layers.push(
         new ScatterplotLayer<Hotspot>({
@@ -446,9 +492,25 @@ export default function HotspotMap({
 
     overlay.setProps({
       layers,
-      getTooltip: (info: PickingInfo<Hotspot | Junction>) => {
+      getTooltip: (info: PickingInfo<Hotspot | Junction | Blindspot>) => {
         const o = info.object;
         if (!o) return null;
+        if (info.layer?.id === "blindspots") {
+          const b = o as Blindspot;
+          return {
+            html: `<b>${b.name}</b><br/>${b.events} congestion events · ${b.enforcement} tickets<br/>blind spot · ${b.congHours} congestion-hours`,
+            style: {
+              background: "#0b1220",
+              color: "#e5e7eb",
+              fontSize: "12px",
+              padding: "6px 8px",
+              borderRadius: "6px",
+              border: "1px solid #6d28d9",
+              maxWidth: "220px",
+              whiteSpace: "normal",
+            },
+          };
+        }
         if (info.layer?.id === "junctions") {
           const j = o as Junction;
           return {
@@ -502,6 +564,10 @@ export default function HotspotMap({
     showJunctions,
     selectedJunctionId,
     onSelectJunction,
+    blindspots,
+    showBlind,
+    selectedBlindId,
+    onSelectBlind,
   ]);
 
   // Live-feed simulation. Spawns amber pings at random (score-weighted) hotspots
