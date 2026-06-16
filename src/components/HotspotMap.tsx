@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -134,6 +134,7 @@ export interface MapProps {
   showCongestion: boolean;
   selectedId: string | null;
   focusBounds?: [[number, number], [number, number]] | null;
+  route: Hotspot[] | null;
   onSelect: (h: Hotspot | null) => void;
 }
 
@@ -147,6 +148,7 @@ export default function HotspotMap({
   showCongestion,
   selectedId,
   focusBounds,
+  route,
   onSelect,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -230,6 +232,21 @@ export default function HotspotMap({
     map.fitBounds(focusBounds, { padding: 90, maxZoom: 14.5, duration: 800 });
   }, [focusBounds, ready]);
 
+  // fit the map to an active patrol route
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !route || route.length < 2) return;
+    const lats = route.map((h) => h.lat);
+    const lngs = route.map((h) => h.lng);
+    map.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      { padding: 110, maxZoom: 14, duration: 800 }
+    );
+  }, [route, ready]);
+
   // rebuild deck layers when data / filters / selection change
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -304,6 +321,50 @@ export default function HotspotMap({
       );
     }
 
+    if (route && route.length) {
+      layers.push(
+        new PathLayer<{ path: [number, number][] }>({
+          id: "route-line",
+          data: [{ path: route.map((h) => [h.lng, h.lat] as [number, number]) }],
+          getPath: (d) => d.path,
+          getColor: [245, 158, 11, 230],
+          getWidth: 4,
+          widthUnits: "pixels",
+          capRounded: true,
+          jointRounded: true,
+        })
+      );
+      layers.push(
+        new ScatterplotLayer<Hotspot>({
+          id: "route-stops",
+          data: route,
+          getPosition: (h: Hotspot) => [h.lng, h.lat] as [number, number],
+          getRadius: 11,
+          radiusUnits: "pixels",
+          getFillColor: [245, 158, 11, 255] as [number, number, number, number],
+          stroked: true,
+          getLineColor: [10, 15, 28, 255] as [number, number, number, number],
+          lineWidthMinPixels: 2,
+        })
+      );
+      layers.push(
+        new TextLayer<{ pos: [number, number]; n: string }>({
+          id: "route-labels",
+          data: route.map((h, i) => ({
+            pos: [h.lng, h.lat] as [number, number],
+            n: String(i + 1),
+          })),
+          getPosition: (d) => d.pos,
+          getText: (d) => d.n,
+          getSize: 12,
+          getColor: [10, 15, 28, 255] as [number, number, number, number],
+          fontWeight: 700,
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "center",
+        })
+      );
+    }
+
     overlay.setProps({
       layers,
       getTooltip: (info: PickingInfo<Hotspot>) => {
@@ -333,6 +394,7 @@ export default function HotspotMap({
     showHotspots,
     showCongestion,
     selectedId,
+    route,
     onSelect,
   ]);
 

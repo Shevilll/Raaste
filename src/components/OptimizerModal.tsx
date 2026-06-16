@@ -12,6 +12,7 @@ export default function OptimizerModal({
   teams,
   setTeams,
   congestion,
+  onShowRoute,
   onClose,
 }: {
   hotspots: Hotspot[];
@@ -19,6 +20,7 @@ export default function OptimizerModal({
   teams: number;
   setTeams: (n: number) => void;
   congestion: Congestion | null;
+  onShowRoute?: (zones: Hotspot[]) => void;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<Mode>("impact");
@@ -303,6 +305,14 @@ export default function OptimizerModal({
             {fmt(violations)} violations across {teams} zones
           </span>
           <div className="flex items-center gap-2">
+            {onShowRoute && (
+              <button
+                onClick={() => onShowRoute(plan)}
+                className="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+              >
+                Show route on map
+              </button>
+            )}
             <button
               onClick={printPlan}
               className="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"

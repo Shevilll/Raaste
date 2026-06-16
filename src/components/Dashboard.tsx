@@ -20,6 +20,7 @@ import IntroTour from "@/components/IntroTour";
 import Offenders from "@/components/Offenders";
 import CoverageChart from "@/components/CoverageChart";
 import MonthlyTrend from "@/components/MonthlyTrend";
+import { planRoute } from "@/lib/route";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
@@ -46,6 +47,9 @@ export default function Dashboard() {
   const [optimizerOpen, setOptimizerOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
   const [teams, setTeams] = useState(8);
+  const [route, setRoute] = useState<{ zones: Hotspot[]; km: number } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -256,6 +260,7 @@ export default function Dashboard() {
                 showCongestion={showCongestion}
                 selectedId={selectedId}
                 focusBounds={focusBounds}
+                route={route?.zones ?? null}
                 onSelect={(h) => setSelectedId(h ? h.id : null)}
               />
             </>
@@ -264,6 +269,14 @@ export default function Dashboard() {
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
               Loading Bengaluru parking data…
             </div>
+          )}
+          {route && (
+            <button
+              onClick={() => setRoute(null)}
+              className="absolute left-3 top-3 z-10 rounded-full border border-amber-500/60 bg-[#0a0f1c]/90 px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg hover:bg-amber-500/10"
+            >
+              Patrol route · {route.km.toFixed(1)} km · clear ✕
+            </button>
           )}
           <Legend />
         </main>
@@ -276,6 +289,11 @@ export default function Dashboard() {
           teams={teams}
           setTeams={setTeams}
           congestion={congestion}
+          onShowRoute={(zones) => {
+            const r = planRoute(zones);
+            setRoute({ zones: r.order.map((i) => zones[i]), km: r.km });
+            setOptimizerOpen(false);
+          }}
           onClose={() => setOptimizerOpen(false)}
         />
       )}
