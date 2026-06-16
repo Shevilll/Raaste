@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Summary, Hotspot, Point, Congestion } from "@/lib/types";
+import type {
+  Summary,
+  Hotspot,
+  Point,
+  Congestion,
+  Prediction,
+} from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
 import TimeControls from "@/components/TimeControls";
@@ -17,6 +23,7 @@ export default function Dashboard() {
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [points, setPoints] = useState<Point[]>([]);
   const [congestion, setCongestion] = useState<Congestion | null>(null);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [station, setStation] = useState<string | null>(null);
   const [hour, setHour] = useState(-1);
@@ -34,13 +41,15 @@ export default function Dashboard() {
       fetch("/data/hotspots.json").then((r) => r.json()),
       fetch("/data/points.json").then((r) => r.json()),
       fetch("/data/congestion.json").then((r) => r.json()),
+      fetch("/data/prediction.json").then((r) => r.json()),
     ])
-      .then(([s, h, p, c]) => {
+      .then(([s, h, p, c, pr]) => {
         if (!alive) return;
         setSummary(s);
         setHotspots(h);
         setPoints(p.points);
         setCongestion(c);
+        setPrediction(pr);
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
@@ -134,6 +143,7 @@ export default function Dashboard() {
             <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
           )}
           {summary && <Trends summary={summary} hour={hour} dow={dow} />}
+          {prediction && <ModelCard p={prediction} />}
           {selectedHotspot ? (
             <HotspotDetail
               h={selectedHotspot}
@@ -215,6 +225,80 @@ function Toggle({
     >
       {label}
     </button>
+  );
+}
+
+function ModelCard({ p }: { p: Prediction }) {
+  const maxImp = Math.max(...p.importances.map((i) => i[1]), 0.001);
+  const a = p.sample.actual;
+  const pr = p.sample.predicted;
+  const maxA = Math.max(...a, 1);
+  const maxP = Math.max(...pr, 1);
+  return (
+    <div className="rounded-lg border border-sky-900/40 bg-sky-950/10 p-3">
+      <div className="text-[11px] uppercase tracking-wider text-sky-300/80">
+        AI forecast model
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl font-semibold text-white">
+          R² {p.metrics.r2.toFixed(2)}
+        </span>
+        <span className="text-[10px] text-slate-500">
+          held-out · MAE {p.metrics.mae.toFixed(2)}
+        </span>
+      </div>
+      <div className="text-[11px] text-slate-400">
+        {p.model} — predicts violations by location &amp; time
+      </div>
+
+      <div className="mt-2 text-[10px] uppercase tracking-wider text-slate-500">
+        What drives it
+      </div>
+      <div className="mt-1 space-y-1">
+        {p.importances.map(([name, v]) => (
+          <div key={name}>
+            <div className="flex justify-between text-[10px] text-slate-300">
+              <span>{name}</span>
+              <span className="text-slate-500">{Math.round(v * 100)}%</span>
+            </div>
+            <div className="h-1.5 rounded bg-slate-800">
+              <div
+                className="h-1.5 rounded bg-sky-400"
+                style={{ width: `${(v / maxImp) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 text-[10px] uppercase tracking-wider text-slate-500">
+        Daily pattern · predicted vs actual
+      </div>
+      <div className="mt-1 flex h-12 gap-px">
+        {a.map((v, i) => (
+          <div key={i} className="relative h-full flex-1">
+            <div
+              className="absolute bottom-0 w-full rounded-sm bg-slate-700"
+              style={{ height: `${(v / maxA) * 100}%` }}
+            />
+            <div
+              className="absolute bottom-0 w-full rounded-sm bg-sky-400/70"
+              style={{ height: `${(pr[i] / maxP) * 100}%` }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-1 flex gap-3 text-[9px] text-slate-500">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm bg-slate-600" />
+          actual
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-2 rounded-sm bg-sky-400/70" />
+          predicted
+        </span>
+      </div>
+    </div>
   );
 }
 

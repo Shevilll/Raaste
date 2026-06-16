@@ -60,3 +60,11 @@ export interface Congestion {
     nHotspots: number;
   };
 }
+
+export interface Prediction {
+  model: string;
+  target: string;
+  metrics: { r2: number; mae: number; nTrain: number; nTest: number };
+  importances: [string, number][];
+  sample: { station: string; actual: number[]; predicted: number[] };
+}
