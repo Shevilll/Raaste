@@ -8,6 +8,7 @@ import type {
   Point,
   Congestion,
   Prediction,
+  Offenders as OffendersData,
 } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
@@ -16,6 +17,9 @@ import OptimizerModal from "@/components/OptimizerModal";
 import MethodologyModal from "@/components/MethodologyModal";
 import TypeFilter from "@/components/TypeFilter";
 import IntroTour from "@/components/IntroTour";
+import Offenders from "@/components/Offenders";
+import CoverageChart from "@/components/CoverageChart";
+import MonthlyTrend from "@/components/MonthlyTrend";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
@@ -28,6 +32,7 @@ export default function Dashboard() {
   const [points, setPoints] = useState<Point[]>([]);
   const [congestion, setCongestion] = useState<Congestion | null>(null);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [offenders, setOffenders] = useState<OffendersData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [station, setStation] = useState<string | null>(null);
   const [typeIdx, setTypeIdx] = useState<number | null>(null);
@@ -51,14 +56,16 @@ export default function Dashboard() {
       fetch("/data/points.json").then((r) => r.json()),
       fetch("/data/congestion.json").then((r) => r.json()),
       fetch("/data/prediction.json").then((r) => r.json()),
+      fetch("/data/offenders.json").then((r) => r.json()),
     ])
-      .then(([s, h, p, c, pr]) => {
+      .then(([s, h, p, c, pr, off]) => {
         if (!alive) return;
         setSummary(s);
         setHotspots(h);
         setPoints(p.points);
         setCongestion(c);
         setPrediction(pr);
+        setOffenders(off);
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
@@ -190,8 +197,13 @@ export default function Dashboard() {
           {congestion && (
             <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
           )}
+          {summary && (
+            <CoverageChart hotspots={hotspots} totalImpact={summary.totalImpact} />
+          )}
           {summary && <Trends summary={summary} hour={hour} dow={dow} />}
+          {summary?.monthly && <MonthlyTrend monthly={summary.monthly} />}
           {prediction && <ModelCard p={prediction} />}
+          {offenders && <Offenders data={offenders} />}
           {selectedHotspot ? (
             <HotspotDetail
               h={selectedHotspot}

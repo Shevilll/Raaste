@@ -14,6 +14,7 @@ export interface Summary {
   hourly: number[];
   daily: number[];
   hourDow: number[][];
+  monthly: [string, number][];
   typeLegend: string[];
   vehicleLegend: string[];
 }
@@ -69,4 +70,12 @@ export interface Prediction {
   importances: [string, number][];
   forecast: Record<string, number[]>;
   sample: { station: string; actual: number[]; predicted: number[] };
+}
+
+export interface Offenders {
+  totalVehicles: number;
+  totalViolations: number;
+  repeatOffenders: number;
+  top1pct: { vehicles: number; share: number };
+  offenders: { vehicle: string; count: number; type: string }[];
 }

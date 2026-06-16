@@ -128,6 +128,7 @@ def main():
     station_counts, station_sev = Counter(), Counter()
     hourly, daily = [0] * 24, [0] * 7
     hourdow = [[0] * 24 for _ in range(7)]
+    monthly = Counter()
     n = geo = 0
     sum_lat = sum_lng = 0.0
     dmin = dmax = None
@@ -180,6 +181,7 @@ def main():
             if day[:1].isdigit():
                 dmin = day if dmin is None or day < dmin else dmin
                 dmax = day if dmax is None or day > dmax else dmax
+                monthly[day[:7]] += 1
 
             seen += 1
             rec = [round(lat, 5), round(lng, 5),
@@ -257,6 +259,7 @@ def main():
         "geoViolations": geo,
         "totalImpact": sum(cell_sev.values()),
         "dateRange": [dmin, dmax],
+        "monthly": sorted([list(x) for x in monthly.items()]),
         "cityCenter": [round(sum_lat / max(geo, 1), 5), round(sum_lng / max(geo, 1), 5)],
         "numHotspots": len(hotspots),
         "sampleSize": len(sample),
