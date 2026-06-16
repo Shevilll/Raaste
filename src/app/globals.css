@@ -90,6 +90,37 @@ html[data-theme="light"] .mapboxgl-canvas {
   border-radius: 4px;
 }
 
+/* Beat sheet (/briefing) print layout: only the sheet prints, on white, at full height
+   with its accent backgrounds preserved. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+  .briefing-root {
+    height: auto !important;
+    display: block !important;
+  }
+  .briefing-scroll {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+  .print-sheet {
+    max-width: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 /* Respect users who prefer reduced motion (live-feed pings, transitions, etc.). */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import type {
   Summary,
   Hotspot,
@@ -318,6 +319,14 @@ export default function Dashboard() {
           >
             ⚡ Patrol plan
           </button>
+          <Link
+            href={`/briefing${
+              station ? `?station=${encodeURIComponent(station)}` : ""
+            }`}
+            className="rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+          >
+            📋 Beat sheet
+          </Link>
           <Toggle on={showHeatmap} set={setShowHeatmap} label="Heatmap" />
           <Toggle on={showHotspots} set={setShowHotspots} label="Hotspots" />
           <Toggle
