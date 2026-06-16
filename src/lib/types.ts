@@ -41,3 +41,22 @@ export type Point = [number, number, number, number, number, number];
 export interface PointsFile {
   points: Point[];
 }
+
+// congestion.json events: [lat, lng, causeIdx, priIdx]
+export type CongestionEvent = [number, number, number, number];
+
+export interface Congestion {
+  events: CongestionEvent[];
+  causeLegend: string[];
+  nearby: Record<string, number>;
+  minDistM: Record<string, number>;
+  correlation: {
+    radiusM: number;
+    totalEvents: number;
+    pctTop50: number;
+    hitTop50: number;
+    pctTop100: number;
+    hitTop100: number;
+    nHotspots: number;
+  };
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Summary, Hotspot, Point } from "@/lib/types";
+import type { Summary, Hotspot, Point, Congestion } from "@/lib/types";
 import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
 import TimeControls from "@/components/TimeControls";
@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [points, setPoints] = useState<Point[]>([]);
+  const [congestion, setCongestion] = useState<Congestion | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [station, setStation] = useState<string | null>(null);
   const [hour, setHour] = useState(-1);
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [playing, setPlaying] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
+  const [showCongestion, setShowCongestion] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,12 +33,14 @@ export default function Dashboard() {
       fetch("/data/summary.json").then((r) => r.json()),
       fetch("/data/hotspots.json").then((r) => r.json()),
       fetch("/data/points.json").then((r) => r.json()),
+      fetch("/data/congestion.json").then((r) => r.json()),
     ])
-      .then(([s, h, p]) => {
+      .then(([s, h, p, c]) => {
         if (!alive) return;
         setSummary(s);
         setHotspots(h);
         setPoints(p.points);
+        setCongestion(c);
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
@@ -115,16 +119,25 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <Toggle on={showHeatmap} set={setShowHeatmap} label="Heatmap" />
           <Toggle on={showHotspots} set={setShowHotspots} label="Hotspots" />
+          <Toggle
+            on={showCongestion}
+            set={setShowCongestion}
+            label="Congestion"
+          />
         </div>
       </header>
 
       <div className="relative flex flex-1 overflow-hidden">
         <aside className="z-10 flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-slate-800 bg-[#0a0f1c]/95 p-3">
           {summary && <StatsPanel summary={summary} />}
+          {congestion && (
+            <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
+          )}
           {summary && <Trends summary={summary} hour={hour} dow={dow} />}
           {selectedHotspot ? (
             <HotspotDetail
               h={selectedHotspot}
+              congestion={congestion}
               onBack={() => setSelectedId(null)}
             />
           ) : (
@@ -162,6 +175,8 @@ export default function Dashboard() {
                 points={filteredPoints}
                 showHeatmap={showHeatmap}
                 showHotspots={showHotspots}
+                congestion={congestion?.events ?? []}
+                showCongestion={showCongestion}
                 selectedId={selectedId}
                 focusBounds={focusBounds}
                 onSelect={(h) => setSelectedId(h ? h.id : null)}
@@ -200,6 +215,33 @@ function Toggle({
     >
       {label}
     </button>
+  );
+}
+
+function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
+  const x = c.correlation;
+  return (
+    <div className="rounded-lg border border-red-900/50 bg-red-950/20 p-3">
+      <div className="text-[11px] uppercase tracking-wider text-red-300/80">
+        Parking → congestion
+      </div>
+      <div className="mt-1 text-2xl font-semibold text-white">
+        {x.pctTop50}%
+      </div>
+      <div className="text-xs text-slate-300">
+        of the top 50 parking hotspots sit within {x.radiusM}m of a real ASTraM
+        congestion event ({x.pctTop100}% of the top 100).
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+        <span>{fmt(x.totalEvents)} ASTraM events cross-referenced</span>
+        <button
+          onClick={onShow}
+          className="text-red-300 hover:text-red-200"
+        >
+          show on map →
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -292,7 +334,15 @@ function RankedList({
   );
 }
 
-function HotspotDetail({ h, onBack }: { h: Hotspot; onBack: () => void }) {
+function HotspotDetail({
+  h,
+  congestion,
+  onBack,
+}: {
+  h: Hotspot;
+  congestion: Congestion | null;
+  onBack: () => void;
+}) {
   const maxH = Math.max(...h.hourly, 1);
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
@@ -324,6 +374,16 @@ function HotspotDetail({ h, onBack }: { h: Hotspot; onBack: () => void }) {
           value={h.peakDow !== null ? DAYS[h.peakDow] : "—"}
         />
       </div>
+
+      {congestion && (
+        <div className="mt-2 rounded bg-red-950/30 px-2 py-1.5 text-[11px] text-red-200/90">
+          {congestion.nearby[h.id] ?? 0} real congestion events within{" "}
+          {congestion.correlation.radiusM}m
+          {congestion.minDistM[h.id] !== undefined
+            ? ` · nearest ${congestion.minDistM[h.id]}m`
+            : ""}
+        </div>
+      )}
 
       <div className="mt-3 text-[11px] uppercase tracking-wider text-slate-500">
         By hour of day

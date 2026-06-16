@@ -7,7 +7,7 @@ import { ScatterplotLayer } from "@deck.gl/layers";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Hotspot, Point } from "@/lib/types";
+import type { Hotspot, Point, CongestionEvent } from "@/lib/types";
 
 // Self-contained raster basemap (CARTO dark tiles) — no external style.json fetch,
 // so it renders reliably even behind ad-blockers / flaky networks.
@@ -48,6 +48,8 @@ export interface MapProps {
   points: Point[];
   showHeatmap: boolean;
   showHotspots: boolean;
+  congestion: CongestionEvent[];
+  showCongestion: boolean;
   selectedId: string | null;
   focusBounds?: [[number, number], [number, number]] | null;
   onSelect: (h: Hotspot | null) => void;
@@ -59,6 +61,8 @@ export default function HotspotMap({
   points,
   showHeatmap,
   showHotspots,
+  congestion,
+  showCongestion,
   selectedId,
   focusBounds,
   onSelect,
@@ -136,6 +140,25 @@ export default function HotspotMap({
       );
     }
 
+    if (showCongestion && congestion.length) {
+      layers.push(
+        new ScatterplotLayer<CongestionEvent>({
+          id: "congestion",
+          data: congestion,
+          getPosition: (e: CongestionEvent) => [e[1], e[0]] as [number, number],
+          getRadius: 55,
+          radiusUnits: "meters",
+          radiusMinPixels: 2.5,
+          radiusMaxPixels: 7,
+          stroked: true,
+          filled: true,
+          getFillColor: [230, 40, 70, 70] as [number, number, number, number],
+          getLineColor: [240, 80, 95, 200] as [number, number, number, number],
+          lineWidthMinPixels: 1,
+        })
+      );
+    }
+
     if (showHotspots) {
       layers.push(
         new ScatterplotLayer<Hotspot>({
@@ -187,7 +210,16 @@ export default function HotspotMap({
         };
       },
     });
-  }, [hotspots, points, showHeatmap, showHotspots, selectedId, onSelect]);
+  }, [
+    hotspots,
+    points,
+    congestion,
+    showHeatmap,
+    showHotspots,
+    showCongestion,
+    selectedId,
+    onSelect,
+  ]);
 
   // Outer div keeps the Tailwind `absolute inset-0`; the inner div is the MapLibre
   // container (MapLibre forces position:relative on it, so it must size via h/w-full).
