@@ -22,29 +22,29 @@ export default function MethodologyModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-[640px] max-w-full flex-col rounded-xl border border-slate-700 bg-[#0a0f1c] shadow-2xl"
+        className="flex max-h-[88vh] w-[640px] max-w-full flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-          <div className="text-sm font-semibold text-white">How Raaste works</div>
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+          <div className="text-sm font-semibold text-[var(--text-strong)]">How Raaste works</div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white"
+            className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 text-xs leading-relaxed text-slate-300">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 text-xs leading-relaxed text-[var(--text)]">
           <Section title="Data — real, and only what is provided">
             Built strictly from the two HackerEarth-provided Bengaluru Traffic Police
             datasets:{" "}
-            <b className="text-slate-100">
+            <b className="text-[var(--text-strong)]">
               {fmt(summary.totalViolations)} anonymized parking violations
             </b>{" "}
             ({summary.dateRange[0]} → {summary.dateRange[1]}) and{" "}
-            <b className="text-slate-100">
+            <b className="text-[var(--text-strong)]">
               {fmt(corr?.totalEvents ?? 8173)} ASTraM events
             </b>
             . No external datasets — nothing scraped, nothing simulated.
@@ -52,7 +52,7 @@ export default function MethodologyModal({
 
           <Section title="Hotspots and the impact score">
             Violations are binned into ~220 m grid cells. Each cell carries an{" "}
-            <b className="text-slate-100">impact score</b> that sums a severity weight per
+            <b className="text-[var(--text-strong)]">impact score</b> that sums a severity weight per
             violation — parking on a main road, at a junction, on a footpath, or near a
             bus-stop or school counts far more than a generic no-parking ticket. So the
             ranking reflects how much each zone chokes traffic, not merely how many tickets
@@ -62,16 +62,16 @@ export default function MethodologyModal({
           <Section title="Proving parking → congestion">
             Every parking hotspot is cross-referenced against real ASTraM
             congestion/incident events.{" "}
-            <b className="text-slate-100">{corr?.pctTop50 ?? 100}% of the top 50</b>{" "}
+            <b className="text-[var(--text-strong)]">{corr?.pctTop50 ?? 100}% of the top 50</b>{" "}
             hotspots (and {corr?.pctTop100 ?? 98}% of the top 100) sit within{" "}
             {corr?.radiusM ?? 300} m of a logged congestion point — evidence that the worst
             parking zones are the real congestion points of the city.
           </Section>
 
           <Section title="The forecast model">
-            A <b className="text-slate-100">RandomForest (120 trees)</b> predicts violation
+            A <b className="text-[var(--text-strong)]">RandomForest (120 trees)</b> predicts violation
             intensity per cell, per hour, per day-of-week. Held-out accuracy:{" "}
-            <b className="text-slate-100">R² {prediction?.metrics.r2 ?? 0.59}</b>. What
+            <b className="text-[var(--text-strong)]">R² {prediction?.metrics.r2 ?? 0.59}</b>. What
             drives it:{" "}
             {(prediction?.importances ?? [])
               .map(([k, v]) => `${k} ${Math.round(v * 100)}%`)
@@ -88,7 +88,7 @@ export default function MethodologyModal({
           </Section>
         </div>
 
-        <div className="border-t border-slate-800 px-4 py-2 text-[10px] text-slate-500">
+        <div className="border-t border-[var(--border)] px-4 py-2 text-[10px] text-[var(--text-faint)]">
           Data is anonymized and processed offline into compact aggregates, so no raw
           records ever reach the browser.
         </div>

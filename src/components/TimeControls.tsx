@@ -33,7 +33,7 @@ export default function TimeControls({
     hour < 0 ? "All day" : `${hourLabel(hour)} – ${hourLabel((hour + 1) % 24)}`;
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-3 z-10 w-[600px] max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-xl border border-slate-800 bg-[#0a0f1c]/95 px-3 py-2.5 shadow-xl backdrop-blur">
+    <div className="pointer-events-auto absolute left-1/2 top-3 z-10 w-[600px] max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-xl backdrop-blur">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setPlaying(!playing)}
@@ -51,9 +51,9 @@ export default function TimeControls({
             setPlaying(false);
             setHour(Number(e.target.value));
           }}
-          className="h-1 flex-1 cursor-pointer appearance-none rounded bg-slate-700 accent-amber-500"
+          className="h-1 flex-1 cursor-pointer appearance-none rounded bg-[var(--track)] accent-amber-500"
         />
-        <span className="w-28 shrink-0 text-right text-xs font-medium tabular-nums text-slate-100">
+        <span className="w-28 shrink-0 text-right text-xs font-medium tabular-nums text-[var(--text-strong)]">
           {label}
         </span>
         <button
@@ -64,14 +64,14 @@ export default function TimeControls({
           className={`shrink-0 rounded px-2 py-1 text-[11px] ${
             hour < 0
               ? "bg-amber-500 text-slate-950"
-              : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+              : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"
           }`}
         >
           All hours
         </button>
       </div>
       <div className="mt-2 flex items-center gap-1">
-        <span className="mr-1 text-[10px] uppercase tracking-wider text-slate-500">
+        <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
           Day
         </span>
         <Chip active={dow < 0} label="All" onClick={() => setDow(-1)} />
@@ -103,7 +103,7 @@ function Chip({
       className={`rounded px-2 py-0.5 text-[10px] font-medium ${
         active
           ? "bg-amber-500 text-slate-950"
-          : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+          : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"
       }`}
     >
       {label}

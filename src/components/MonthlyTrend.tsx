@@ -32,8 +32,8 @@ export default function MonthlyTrend({
   const max = Math.max(...monthly.map(([, count]) => count), 1);
 
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         Violations over time
       </div>
 
@@ -45,7 +45,7 @@ export default function MonthlyTrend({
               key={key}
               title={`${long} · ${fmt(count)}`}
               className={`flex-1 rounded-sm ${
-                count === max ? "bg-amber-400" : "bg-slate-700"
+                count === max ? "bg-amber-400" : "bg-[var(--track)]"
               }`}
               style={{ height: `${Math.max((count / max) * 100, 3)}%` }}
             />
@@ -57,7 +57,7 @@ export default function MonthlyTrend({
         {monthly.map(([key]) => (
           <div
             key={key}
-            className="flex-1 text-center text-[9px] text-slate-500"
+            className="flex-1 text-center text-[9px] text-[var(--text-faint)]"
           >
             {parseMonth(key).label}
           </div>

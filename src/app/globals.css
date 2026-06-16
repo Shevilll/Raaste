@@ -25,10 +25,31 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Theme tokens. Dark is the default (no data-theme attribute) and the values
+   below match the colours the app already shipped with, so dark is unchanged.
+   Light is a clean additive override applied via html[data-theme="light"]. */
+:root {
+  --bg: #070b14; --surface: #0a0f1c; --panel: #0f1828; --border: #1e293b;
+  --border-strong: #334155; --text: #e2e8f0; --text-strong: #ffffff;
+  --text-muted: #94a3b8; --text-faint: #64748b; --chip: #1e293b;
+  --chip-text: #cbd5e1; --track: #334155;
+}
+html[data-theme="light"] {
+  --bg: #eef2f7; --surface: #ffffff; --panel: #f8fafc; --border: #e2e8f0;
+  --border-strong: #cbd5e1; --text: #1e293b; --text-strong: #0f172a;
+  --text-muted: #475569; --text-faint: #64748b; --chip: #e8edf3;
+  --chip-text: #334155; --track: #cbd5e1;
+}
+
 /* Dark-mode the Mappls (production) basemap so it matches the dark UI. This only
    matches the Mappls canvas (.mapboxgl-canvas); the CARTO fallback canvas
    (.maplibregl-canvas) and our deck.gl overlay (#deckgl-overlay) are untouched. */
 .mapboxgl-canvas {
   filter: invert(0.92) hue-rotate(185deg) brightness(0.9) contrast(0.95)
     saturate(0.65);
+}
+
+/* The Mappls basemap is already a light map, so in light mode it needs no inversion. */
+html[data-theme="light"] .mapboxgl-canvas {
+  filter: none;
 }

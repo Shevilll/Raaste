@@ -66,13 +66,13 @@ export default function CoverageChart({
   const gridLines = [0, 50, 100];
 
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         Impact concentration
       </div>
 
       <div className="mt-2 flex gap-1.5">
-        <div className="flex flex-col justify-between py-[6px] text-right text-[9px] leading-none text-slate-600">
+        <div className="flex flex-col justify-between py-[6px] text-right text-[9px] leading-none text-[var(--text-faint)]">
           <span>100%</span>
           <span>50%</span>
           <span>0%</span>
@@ -112,12 +112,12 @@ export default function CoverageChart({
         </svg>
       </div>
 
-      <div className="mt-0.5 flex justify-between pl-[26px] text-[9px] text-slate-600">
+      <div className="mt-0.5 flex justify-between pl-[26px] text-[9px] text-[var(--text-faint)]">
         <span>1</span>
         <span>{n}</span>
       </div>
 
-      <p className="mt-2 text-[12px] leading-snug text-slate-300">
+      <p className="mt-2 text-[12px] leading-snug text-[var(--text)]">
         <span className="font-semibold text-amber-400">
           Just {takeawayN} zones
         </span>{" "}

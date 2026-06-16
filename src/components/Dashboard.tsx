@@ -20,6 +20,7 @@ import IntroTour from "@/components/IntroTour";
 import Offenders from "@/components/Offenders";
 import CoverageChart from "@/components/CoverageChart";
 import MonthlyTrend from "@/components/MonthlyTrend";
+import ThemeToggle from "@/components/ThemeToggle";
 import { planRoute } from "@/lib/route";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
@@ -202,23 +203,24 @@ export default function Dashboard() {
     : "Worst hotspots";
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-[#070b14] text-slate-200">
-      <header className="z-20 flex h-14 items-center justify-between border-b border-slate-800 bg-[#0a0f1c] px-4">
+    <div className="flex h-screen w-screen flex-col bg-[var(--bg)] text-[var(--text)]">
+      <header className="z-20 flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-4">
         <div className="flex items-baseline gap-3">
-          <span className="text-lg font-semibold tracking-tight text-white">
+          <span className="text-lg font-semibold tracking-tight text-[var(--text-strong)]">
             Raa<span className="text-amber-500">ste</span>
           </span>
-          <span className="hidden text-xs text-slate-400 sm:inline">
+          <span className="hidden text-xs text-[var(--text-muted)] sm:inline">
             Parking-Congestion Intelligence · Bengaluru Traffic Police
           </span>
           <button
             onClick={() => setMethodOpen(true)}
-            className="hidden text-xs text-slate-500 underline-offset-2 hover:text-amber-400 hover:underline sm:inline"
+            className="hidden text-xs text-[var(--text-faint)] underline-offset-2 hover:text-amber-400 hover:underline sm:inline"
           >
             How it works
           </button>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             onClick={() => setOptimizerOpen(true)}
             className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-amber-400"
@@ -239,7 +241,7 @@ export default function Dashboard() {
       </header>
 
       <div className="relative flex flex-1 overflow-hidden">
-        <aside className="z-10 flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-slate-800 bg-[#0a0f1c]/95 p-3">
+        <aside className="z-10 flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-3">
           {summary && <StatsPanel summary={summary} />}
           {congestion && (
             <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
@@ -309,14 +311,14 @@ export default function Dashboard() {
             </>
           )}
           {loading && (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+            <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">
               Loading Bengaluru parking data…
             </div>
           )}
           {route && (
             <button
               onClick={() => setRoute(null)}
-              className="absolute left-3 top-3 z-10 rounded-full border border-amber-500/60 bg-[#0a0f1c]/90 px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg hover:bg-amber-500/10"
+              className="absolute left-3 top-3 z-10 rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-amber-300 shadow-lg hover:bg-amber-500/10"
             >
               Patrol route · {route.km.toFixed(1)} km · clear ✕
             </button>
@@ -370,7 +372,7 @@ function Toggle({
       className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
         on
           ? "bg-amber-500 text-slate-950"
-          : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+          : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"
       }`}
     >
       {label}
@@ -390,28 +392,28 @@ function ModelCard({ p }: { p: Prediction }) {
         AI forecast model
       </div>
       <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl font-semibold text-white">
+        <span className="text-2xl font-semibold text-[var(--text-strong)]">
           R² {p.metrics.r2.toFixed(2)}
         </span>
-        <span className="text-[10px] text-slate-500">
+        <span className="text-[10px] text-[var(--text-faint)]">
           held-out · MAE {p.metrics.mae.toFixed(2)}
         </span>
       </div>
-      <div className="text-[11px] text-slate-400">
+      <div className="text-[11px] text-[var(--text-muted)]">
         {p.model} — predicts violations by location &amp; time
       </div>
 
-      <div className="mt-2 text-[10px] uppercase tracking-wider text-slate-500">
+      <div className="mt-2 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
         What drives it
       </div>
       <div className="mt-1 space-y-1">
         {p.importances.map(([name, v]) => (
           <div key={name}>
-            <div className="flex justify-between text-[10px] text-slate-300">
+            <div className="flex justify-between text-[10px] text-[var(--text)]">
               <span>{name}</span>
-              <span className="text-slate-500">{Math.round(v * 100)}%</span>
+              <span className="text-[var(--text-faint)]">{Math.round(v * 100)}%</span>
             </div>
-            <div className="h-1.5 rounded bg-slate-800">
+            <div className="h-1.5 rounded bg-[var(--chip)]">
               <div
                 className="h-1.5 rounded bg-sky-400"
                 style={{ width: `${(v / maxImp) * 100}%` }}
@@ -421,14 +423,14 @@ function ModelCard({ p }: { p: Prediction }) {
         ))}
       </div>
 
-      <div className="mt-2 text-[10px] uppercase tracking-wider text-slate-500">
+      <div className="mt-2 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
         Daily pattern · predicted vs actual
       </div>
       <div className="mt-1 flex h-12 gap-px">
         {a.map((v, i) => (
           <div key={i} className="relative h-full flex-1">
             <div
-              className="absolute bottom-0 w-full rounded-sm bg-slate-700"
+              className="absolute bottom-0 w-full rounded-sm bg-[var(--track)]"
               style={{ height: `${(v / maxA) * 100}%` }}
             />
             <div
@@ -438,7 +440,7 @@ function ModelCard({ p }: { p: Prediction }) {
           </div>
         ))}
       </div>
-      <div className="mt-1 flex gap-3 text-[9px] text-slate-500">
+      <div className="mt-1 flex gap-3 text-[9px] text-[var(--text-faint)]">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-sm bg-slate-600" />
           actual
@@ -459,14 +461,14 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
       <div className="text-[11px] uppercase tracking-wider text-red-300/80">
         Parking → congestion
       </div>
-      <div className="mt-1 text-2xl font-semibold text-white">
+      <div className="mt-1 text-2xl font-semibold text-[var(--text-strong)]">
         {x.pctTop50}%
       </div>
-      <div className="text-xs text-slate-300">
+      <div className="text-xs text-[var(--text)]">
         of the top 50 parking hotspots sit within {x.radiusM}m of a real ASTraM
         congestion event ({x.pctTop100}% of the top 100).
       </div>
-      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+      <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-faint)]">
         <span>{fmt(x.totalEvents)} ASTraM events cross-referenced</span>
         <button
           onClick={onShow}
@@ -489,9 +491,9 @@ function StationFilter({
   onSelect: (s: string | null) => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] uppercase tracking-wider text-slate-500">
+        <span className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
           By police station
         </span>
         {active && (
@@ -512,7 +514,7 @@ function StationFilter({
             className={`rounded px-2 py-0.5 text-[10px] ${
               active === name
                 ? "bg-amber-500 text-slate-950"
-                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                : "bg-[var(--chip)] text-[var(--text)] hover:bg-[var(--track)]"
             }`}
           >
             {name}
@@ -533,13 +535,13 @@ function RankedList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
-      <div className="text-[11px] uppercase tracking-wider text-slate-500">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         {title}
       </div>
       <div className="mt-2 space-y-1.5">
         {hotspots.length === 0 && (
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[11px] text-[var(--text-faint)]">
             No hotspots for this filter.
           </div>
         )}
@@ -547,16 +549,16 @@ function RankedList({
           <button
             key={h.id}
             onClick={() => onSelect(h.id)}
-            className="flex w-full items-center gap-2 rounded-md bg-slate-800/40 px-2 py-1.5 text-left hover:bg-slate-800"
+            className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-1.5 text-left hover:bg-[var(--chip)]"
           >
             <span className="w-6 shrink-0 text-xs font-semibold text-amber-500">
               #{h.rank}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs text-slate-200">
+              <span className="block truncate text-xs text-[var(--text)]">
                 {h.station || h.location || "Unknown"}
               </span>
-              <span className="block truncate text-[10px] text-slate-500">
+              <span className="block truncate text-[10px] text-[var(--text-faint)]">
                 {fmt(h.count)} violations · peak {hourRange(h.peakHour ?? -1)}
               </span>
             </span>
@@ -579,20 +581,20 @@ function HotspotDetail({
 }) {
   const maxH = Math.max(...h.hourly, 1);
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
       <button
         onClick={onBack}
-        className="mb-2 text-xs text-slate-400 hover:text-slate-200"
+        className="mb-2 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
       >
         ← back to list
       </button>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-white">
+        <span className="text-sm font-semibold text-[var(--text-strong)]">
           #{h.rank} hotspot
         </span>
         <ScoreChip score={h.score} />
       </div>
-      <div className="mt-1 text-xs text-slate-300">
+      <div className="mt-1 text-xs text-[var(--text)]">
         {h.station ? `${h.station} · ` : ""}
         {h.location}
       </div>
@@ -619,7 +621,7 @@ function HotspotDetail({
         </div>
       )}
 
-      <div className="mt-3 text-[11px] uppercase tracking-wider text-slate-500">
+      <div className="mt-3 text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         By hour of day
       </div>
       <div className="mt-1 flex h-12 items-end gap-px">
@@ -628,31 +630,31 @@ function HotspotDetail({
             key={i}
             title={`${i}:00 — ${v}`}
             className={`flex-1 rounded-sm ${
-              i === h.peakHour ? "bg-amber-400" : "bg-slate-700"
+              i === h.peakHour ? "bg-amber-400" : "bg-[var(--track)]"
             }`}
             style={{ height: `${Math.max((v / maxH) * 100, 4)}%` }}
           />
         ))}
       </div>
 
-      <div className="mt-3 text-[11px] uppercase tracking-wider text-slate-500">
+      <div className="mt-3 text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         Offences here
       </div>
       <div className="mt-1 space-y-1">
         {h.topTypes.map(([name, c]) => (
           <div
             key={name}
-            className="flex justify-between text-[11px] text-slate-300"
+            className="flex justify-between text-[11px] text-[var(--text)]"
           >
             <span className="truncate pr-2">{name}</span>
-            <span className="text-slate-500">{fmt(c)}</span>
+            <span className="text-[var(--text-faint)]">{fmt(c)}</span>
           </div>
         ))}
       </div>
       {h.vehicle && (
-        <div className="mt-2 text-[11px] text-slate-500">
+        <div className="mt-2 text-[11px] text-[var(--text-faint)]">
           Most common vehicle:{" "}
-          <span className="text-slate-300">{h.vehicle}</span>
+          <span className="text-[var(--text)]">{h.vehicle}</span>
         </div>
       )}
     </div>
@@ -677,16 +679,16 @@ function ScoreChip({ score }: { score: number }) {
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded bg-slate-800/50 px-2 py-1.5">
-      <div className="text-[10px] uppercase text-slate-500">{label}</div>
-      <div className="text-xs font-medium text-white">{value}</div>
+    <div className="rounded bg-[var(--chip)] px-2 py-1.5">
+      <div className="text-[10px] uppercase text-[var(--text-faint)]">{label}</div>
+      <div className="text-xs font-medium text-[var(--text-strong)]">{value}</div>
     </div>
   );
 }
 
 function Legend() {
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md border border-slate-800 bg-[#0a0f1c]/90 px-3 py-2 text-[10px] text-slate-400">
+    <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
       <div className="mb-1 uppercase tracking-wider">Violation density</div>
       <div className="flex items-center gap-1">
         <span>low</span>

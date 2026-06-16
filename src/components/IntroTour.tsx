@@ -57,14 +57,14 @@ export default function IntroTour() {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
       <div
-        className="relative w-[440px] max-w-full rounded-xl border border-slate-700 bg-[#0a0f1c] shadow-2xl"
+        className="relative w-[440px] max-w-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="raaste-tour-title"
       >
         <button
           onClick={markSeen}
-          className="absolute right-3 top-3 text-slate-400 transition-colors hover:text-white"
+          className="absolute right-3 top-3 text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
           aria-label="Dismiss tour"
         >
           ✕
@@ -77,11 +77,11 @@ export default function IntroTour() {
 
           <h2
             id="raaste-tour-title"
-            className="text-lg font-semibold text-white"
+            className="text-lg font-semibold text-[var(--text-strong)]"
           >
             {current.title}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
+          <p className="mt-2 text-sm leading-relaxed text-[var(--text)]">
             {current.body}
           </p>
 
@@ -91,17 +91,17 @@ export default function IntroTour() {
               <span
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === step ? "w-5 bg-amber-500" : "w-1.5 bg-slate-700"
+                  i === step ? "w-5 bg-amber-500" : "w-1.5 bg-[var(--track)]"
                 }`}
               />
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-800 px-6 py-3">
+        <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-3">
           <button
             onClick={markSeen}
-            className="text-xs font-medium text-slate-400 transition-colors hover:text-slate-200"
+            className="text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
           >
             Skip
           </button>
@@ -110,7 +110,7 @@ export default function IntroTour() {
             <button
               onClick={() => setStep((s) => Math.max(0, s - 1))}
               disabled={isFirst}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--text)] transition-colors hover:text-[var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-30"
             >
               Back
             </button>
