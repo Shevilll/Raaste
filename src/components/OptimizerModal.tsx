@@ -169,7 +169,7 @@ export default function OptimizerModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[86vh] w-[660px] max-w-full flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
+        className="flex max-h-[90dvh] w-full max-w-[660px] flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -186,7 +186,7 @@ export default function OptimizerModal({
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"
+            className="-mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-strong)]"
             aria-label="Close"
           >
             ✕
@@ -259,8 +259,8 @@ export default function OptimizerModal({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1">
-          <table className="w-full text-left text-xs">
+        <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto px-2 py-1">
+          <table className="w-full min-w-[420px] text-left text-xs">
             <thead className="sticky top-0 bg-[var(--surface)] text-[10px] uppercase text-[var(--text-faint)]">
               <tr>
                 <th className="px-2 py-1.5">#</th>
@@ -305,28 +305,28 @@ export default function OptimizerModal({
           </table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-3">
+        <div className="flex flex-col gap-2 border-t border-[var(--border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-[11px] text-[var(--text-faint)]">
             {fmt(violations)} violations across {teams} zones
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {onShowRoute && (
               <button
                 onClick={() => onShowRoute(plan)}
-                className="rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--text)] hover:bg-[var(--chip)]"
+                className="flex-1 whitespace-nowrap rounded-md border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text)] hover:bg-[var(--chip)] sm:flex-none sm:py-1.5"
               >
                 Show route on map
               </button>
             )}
             <button
               onClick={printPlan}
-              className="rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--text)] hover:bg-[var(--chip)]"
+              className="flex-1 whitespace-nowrap rounded-md border border-[var(--border-strong)] px-3 py-2 text-xs font-semibold text-[var(--text)] hover:bg-[var(--chip)] sm:flex-none sm:py-1.5"
             >
               Print plan
             </button>
             <button
               onClick={download}
-              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+              className="w-full whitespace-nowrap rounded-md bg-amber-500 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-amber-400 sm:w-auto sm:py-1.5"
             >
               Download patrol plan (CSV)
             </button>

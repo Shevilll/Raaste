@@ -60,20 +60,20 @@ export default function IntroTour() {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
       <div
-        className="relative w-[440px] max-w-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
+        className="relative flex max-h-[90dvh] w-full max-w-[440px] flex-col overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="raaste-tour-title"
       >
         <button
           onClick={markSeen}
-          className="absolute right-3 top-3 text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
+          className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
           aria-label="Dismiss tour"
         >
           ✕
         </button>
 
-        <div className="px-6 pb-5 pt-7">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-5 pt-7">
           <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-text)]">
             Step {step + 1} of {STEPS.length}
           </div>
@@ -101,10 +101,10 @@ export default function IntroTour() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-3">
+        <div className="flex shrink-0 items-center justify-between border-t border-[var(--border)] px-6 py-3">
           <button
             onClick={markSeen}
-            className="text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+            className="px-1 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
           >
             Skip
           </button>
@@ -113,7 +113,7 @@ export default function IntroTour() {
             <button
               onClick={() => setStep((s) => Math.max(0, s - 1))}
               disabled={isFirst}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--text)] transition-colors hover:text-[var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-30"
+              className="rounded-lg px-3 py-2 text-xs font-medium text-[var(--text)] transition-colors hover:text-[var(--text-strong)] disabled:cursor-not-allowed disabled:opacity-30 sm:py-1.5"
             >
               Back
             </button>
@@ -122,7 +122,7 @@ export default function IntroTour() {
                 if (isLast) markSeen();
                 else setStep((s) => Math.min(STEPS.length - 1, s + 1));
               }}
-              className="rounded-lg bg-amber-500 px-4 py-1.5 text-xs font-semibold text-slate-950 transition-colors hover:bg-amber-400"
+              className="rounded-lg bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-colors hover:bg-amber-400 sm:py-1.5"
             >
               {isLast ? "Get started" : "Next"}
             </button>

@@ -24,10 +24,10 @@ export default function TypeFilter({
           </button>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap gap-1">
+      <div className="mt-2 flex flex-wrap gap-1.5 lg:gap-1">
         <button
           onClick={() => onSelect(null)}
-          className={`rounded px-2 py-0.5 text-[10px] ${
+          className={`rounded px-2.5 py-1 text-[11px] lg:px-2 lg:py-0.5 lg:text-[10px] ${
             selected === null
               ? "bg-amber-500 text-slate-950"
               : "bg-[var(--chip)] text-[var(--text)] hover:bg-[var(--track)]"
@@ -40,7 +40,7 @@ export default function TypeFilter({
             key={name}
             onClick={() => onSelect(selected === i ? null : i)}
             title={name}
-            className={`max-w-[140px] truncate rounded px-2 py-0.5 text-[10px] ${
+            className={`max-w-[160px] truncate rounded px-2.5 py-1 text-[11px] lg:max-w-[140px] lg:px-2 lg:py-0.5 lg:text-[10px] ${
               selected === i
                 ? "bg-amber-500 text-slate-950"
                 : "bg-[var(--chip)] text-[var(--text)] hover:bg-[var(--track)]"

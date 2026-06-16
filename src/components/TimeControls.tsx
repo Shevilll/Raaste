@@ -34,11 +34,11 @@ export default function TimeControls({
 
   return (
     <div className="pointer-events-auto absolute left-1/2 top-3 z-10 w-[600px] max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-xl backdrop-blur">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <button
           onClick={() => setPlaying(!playing)}
           aria-label={playing ? "Pause" : "Play through the day"}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] text-slate-950 hover:bg-amber-400"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] text-slate-950 hover:bg-amber-400 sm:h-7 sm:w-7"
         >
           {playing ? "❚❚" : "▶"}
         </button>
@@ -51,9 +51,9 @@ export default function TimeControls({
             setPlaying(false);
             setHour(Number(e.target.value));
           }}
-          className="h-1 flex-1 cursor-pointer appearance-none rounded bg-[var(--track)] accent-amber-500"
+          className="h-1 min-w-[120px] flex-1 cursor-pointer appearance-none rounded bg-[var(--track)] accent-amber-500"
         />
-        <span className="w-28 shrink-0 text-right text-xs font-medium tabular-nums text-[var(--text-strong)]">
+        <span className="shrink-0 text-right text-xs font-medium tabular-nums text-[var(--text-strong)] sm:w-28">
           {label}
         </span>
         <button
@@ -61,7 +61,7 @@ export default function TimeControls({
             setPlaying(false);
             setHour(-1);
           }}
-          className={`shrink-0 rounded px-2 py-1 text-[11px] ${
+          className={`shrink-0 rounded px-2 py-1.5 text-[11px] sm:py-1 ${
             hour < 0
               ? "bg-amber-500 text-slate-950"
               : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"
@@ -70,7 +70,7 @@ export default function TimeControls({
           All hours
         </button>
       </div>
-      <div className="mt-2 flex items-center gap-1">
+      <div className="mt-2 flex flex-wrap items-center gap-1">
         <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
           Day
         </span>
@@ -100,7 +100,7 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+      className={`rounded px-2.5 py-1 text-[11px] font-medium sm:px-2 sm:py-0.5 sm:text-[10px] ${
         active
           ? "bg-amber-500 text-slate-950"
           : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"

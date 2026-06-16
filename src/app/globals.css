@@ -25,6 +25,23 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Never allow sideways scrolling on phones — vertical page scroll only. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Keep the desktop shell pinned to the viewport (no page scroll) the way it
+   shipped. Below lg the page is allowed to grow and scroll vertically. */
+@media (min-width: 1024px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
 /* Theme tokens. Dark is the default (no data-theme attribute) and the values
    below match the colours the app already shipped with, so dark is unchanged.
    Light is a clean additive override applied via html[data-theme="light"]. */

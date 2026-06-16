@@ -232,9 +232,9 @@ export default function Dashboard() {
     : "Worst hotspots";
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-[var(--bg)] text-[var(--text)]">
-      <header className="z-20 flex min-h-14 flex-wrap items-center justify-between gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-1.5">
-        <div className="flex items-baseline gap-3">
+    <div className="flex min-h-[100dvh] w-full flex-col bg-[var(--bg)] text-[var(--text)] lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
+      <header className="sticky top-0 z-20 flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4 lg:static lg:py-1.5 lg:pt-1.5">
+        <div className="flex shrink-0 items-baseline gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-[var(--text-strong)]">
             Raa<span className="text-[var(--accent-text)]">ste</span>
           </h1>
@@ -248,11 +248,11 @@ export default function Dashboard() {
             How it works
           </button>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           <ThemeToggle />
           <button
             onClick={() => setOptimizerOpen(true)}
-            className="rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-amber-400"
+            className="rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 lg:py-1"
           >
             ⚡ Patrol plan
           </button>
@@ -270,8 +270,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="relative flex flex-1 overflow-hidden">
-        <aside className="z-10 flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto border-r border-[var(--border)] bg-[var(--surface)] p-3">
+      <div className="relative flex flex-1 flex-col overflow-visible lg:flex-row lg:overflow-hidden">
+        <aside className="z-10 order-2 flex w-full shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:order-none lg:w-[340px] lg:overflow-y-auto lg:border-t-0 lg:border-r lg:pb-3">
           {summary && <StatsPanel summary={summary} />}
           {congestion && (
             <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
@@ -314,7 +314,7 @@ export default function Dashboard() {
           )}
         </aside>
 
-        <main className="relative flex-1">
+        <main className="relative order-1 h-[55dvh] min-h-[420px] w-full lg:order-none lg:h-auto lg:min-h-0 lg:flex-1">
           {!loading && summary && (
             <>
               <TimeControls
@@ -360,7 +360,7 @@ export default function Dashboard() {
           {route && (
             <button
               onClick={() => setRoute(null)}
-              className="absolute left-3 top-3 z-10 rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] shadow-lg hover:bg-amber-500/10"
+              className="absolute bottom-3 right-3 z-10 max-w-[calc(100%-1.5rem)] truncate rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] shadow-lg hover:bg-amber-500/10 lg:bottom-auto lg:right-auto lg:left-3 lg:top-3"
             >
               Patrol route · {route.km.toFixed(1)} km · clear ✕
             </button>
@@ -411,7 +411,7 @@ function Toggle({
   return (
     <button
       onClick={() => set(!on)}
-      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors lg:py-1 ${
         on
           ? "bg-amber-500 text-slate-950"
           : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"
@@ -547,13 +547,13 @@ function StationFilter({
           </button>
         )}
       </div>
-      <div className="mt-2 flex flex-wrap gap-1">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {stations.slice(0, 12).map(([name, count]) => (
           <button
             key={name}
             onClick={() => onSelect(active === name ? null : name)}
             title={`${fmt(count)} violations`}
-            className={`rounded px-2 py-0.5 text-[10px] ${
+            className={`max-w-full truncate rounded px-2 py-1.5 text-[10px] lg:py-0.5 ${
               active === name
                 ? "bg-amber-500 text-slate-950"
                 : "bg-[var(--chip)] text-[var(--text)] hover:bg-[var(--track)]"
@@ -591,7 +591,7 @@ function RankedList({
           <button
             key={h.id}
             onClick={() => onSelect(h.id)}
-            className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-1.5 text-left hover:bg-[var(--track)]"
+            className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-2 text-left hover:bg-[var(--track)] lg:py-1.5"
           >
             <span className="w-6 shrink-0 text-xs font-semibold text-[var(--accent-text)]">
               #{h.rank}
@@ -626,7 +626,7 @@ function HotspotDetail({
     <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
       <button
         onClick={onBack}
-        className="mb-2 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
+        className="mb-2 -ml-1 inline-flex min-h-[28px] items-center rounded px-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
       >
         ← back to list
       </button>
@@ -636,7 +636,7 @@ function HotspotDetail({
         </span>
         <ScoreChip score={h.score} />
       </div>
-      <div className="mt-1 text-xs text-[var(--text)]">
+      <div className="mt-1 break-words text-xs text-[var(--text)]">
         {h.station ? `${h.station} · ` : ""}
         {h.location}
       </div>
@@ -730,18 +730,18 @@ function Mini({ label, value }: { label: string; value: string }) {
 
 function Legend() {
   return (
-    <div className="pointer-events-none absolute right-3 top-24 z-10 rounded-md border border-[var(--border)] bg-[var(--surface)]/95 px-3 py-2 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur">
+    <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-1.5rem)] rounded-md border border-[var(--border)] bg-[var(--surface)]/95 px-2.5 py-2 text-[10px] text-[var(--text-muted)] shadow-lg backdrop-blur lg:bottom-auto lg:left-auto lg:right-3 lg:top-24 lg:px-3">
       <div className="mb-1 uppercase tracking-wider">Violation density</div>
       <div className="flex items-center gap-1">
         <span>low</span>
         <div
-          className="h-2 w-28 rounded"
+          className="h-2 w-20 rounded sm:w-28"
           style={{ backgroundImage: "linear-gradient(to right, var(--heat-grad))" }}
         />
         <span>high</span>
       </div>
       <div className="mt-1.5 flex items-center gap-1">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#ff6e28]" />
+        <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff6e28]" />
         <span>hotspot (size = impact score)</span>
       </div>
     </div>

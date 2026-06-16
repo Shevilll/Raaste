@@ -24,7 +24,7 @@ export default function MethodologyModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-[640px] max-w-full flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
+        className="flex max-h-[88dvh] w-full max-w-[640px] flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -34,7 +34,7 @@ export default function MethodologyModal({
           <div className="text-sm font-semibold text-[var(--text-strong)]">How Raaste works</div>
           <button
             onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"
+            className="-mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-strong)]"
             aria-label="Close"
           >
             ✕

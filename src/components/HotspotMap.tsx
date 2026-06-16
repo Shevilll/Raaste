@@ -420,6 +420,8 @@ export default function HotspotMap({
             padding: "6px 8px",
             borderRadius: "6px",
             border: "1px solid #243044",
+            maxWidth: "220px",
+            whiteSpace: "normal",
           },
         };
       },
@@ -574,13 +576,13 @@ export default function HotspotMap({
           </div>
 
           {/* Status badge — sits below the route-clear button (top-3 left-3). */}
-          <div className="pointer-events-none absolute left-3 top-14 flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-500 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2">
+          <div className="pointer-events-none absolute left-3 right-3 top-14 flex w-fit max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-500 backdrop-blur-sm sm:right-auto">
+            <span className="relative flex h-2 w-2 shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
             </span>
-            <span>LIVE · simulating real-time feed</span>
-            <span className="tabular-nums opacity-70">{liveCount}</span>
+            <span className="truncate">LIVE · simulating real-time feed</span>
+            <span className="shrink-0 tabular-nums opacity-70">{liveCount}</span>
           </div>
         </>
       )}
