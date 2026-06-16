@@ -196,7 +196,14 @@ export default function HotspotMap({
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [ready, setReady] = useState(false);
-  const [isLight, setIsLight] = useState(false);
+  // Seed from the current theme so the map mounts with the right palette. This
+  // component is client-only (dynamic, ssr:false), so reading the DOM here is safe
+  // and avoids a dark-palette flash when it (re)mounts in light mode.
+  const [isLight, setIsLight] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.documentElement.getAttribute("data-theme") === "light"
+  );
 
   // Live-feed simulation: lightweight DOM pings projected over the map.
   const [pings, setPings] = useState<Ping[]>([]);

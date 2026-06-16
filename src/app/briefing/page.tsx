@@ -146,7 +146,7 @@ export default function BriefingPage() {
         </button>
       </div>
 
-      <div className="briefing-scroll flex-1 overflow-y-auto bg-slate-100 p-4 sm:p-8 print:overflow-visible print:bg-white print:p-0">
+      <div className="briefing-scroll flex-1 overflow-y-auto bg-[var(--bg)] p-4 sm:p-8 print:overflow-visible print:bg-white print:p-0">
         {loading && (
           <div className="mx-auto max-w-[820px] py-20 text-center text-sm text-[var(--text-muted)]">
             Loading briefing…

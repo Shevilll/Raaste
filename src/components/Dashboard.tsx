@@ -64,6 +64,7 @@ export default function Dashboard() {
   const [showLive, setShowLive] = useState(false);
   const [optimizerOpen, setOptimizerOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [teams, setTeams] = useState(8);
   const [route, setRoute] = useState<{ zones: Hotspot[]; km: number } | null>(
     null
@@ -132,8 +133,9 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // keep the URL in sync so the current view can be shared / bookmarked
-  useEffect(() => {
+  // build a shareable link for the current view, copied on demand — the URL
+  // bar itself stays clean and doesn't change as you click around the map
+  const copyShareLink = useCallback(async () => {
     const p = new URLSearchParams();
     if (hour >= 0) p.set("h", String(hour));
     if (dow >= 0) p.set("d", String(dow));
@@ -144,11 +146,17 @@ export default function Dashboard() {
     if (showCongestion) p.set("cong", "1");
     if (showForecast) p.set("fc", "1");
     const qs = p.toString();
-    window.history.replaceState(
-      null,
-      "",
-      qs ? `?${qs}` : window.location.pathname
-    );
+    const url = `${window.location.origin}${window.location.pathname}${
+      qs ? `?${qs}` : ""
+    }`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard blocked (e.g. insecure context) — fall back to a prompt
+      window.prompt("Copy this link to the current view:", url);
+    }
   }, [
     hour,
     dow,
@@ -327,6 +335,13 @@ export default function Dashboard() {
           >
             📋 Beat sheet
           </Link>
+          <button
+            onClick={copyShareLink}
+            title="Copy a link to the current view"
+            className="rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+          >
+            {copied ? "✓ Link copied" : "🔗 Copy link"}
+          </button>
           <Toggle on={showHeatmap} set={setShowHeatmap} label="Heatmap" />
           <Toggle on={showHotspots} set={setShowHotspots} label="Hotspots" />
           <Toggle
