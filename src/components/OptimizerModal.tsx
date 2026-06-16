@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Congestion, Hotspot } from "@/lib/types";
 import { fmt, hourRange } from "@/lib/format";
+import { useEscape } from "@/lib/useEscape";
 
 type Mode = "impact" | "congestion";
 
@@ -24,6 +25,7 @@ export default function OptimizerModal({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<Mode>("impact");
+  useEscape(onClose);
 
   // Fall back to plain impact ranking if we have no congestion data to lean on.
   const activeMode: Mode = congestion ? mode : "impact";
@@ -169,6 +171,9 @@ export default function OptimizerModal({
       <div
         className="flex max-h-[86vh] w-[660px] max-w-full flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Enforcement Optimizer"
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
           <div>

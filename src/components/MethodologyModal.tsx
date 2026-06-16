@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import type { Summary, Congestion, Prediction } from "@/lib/types";
 import { fmt } from "@/lib/format";
+import { useEscape } from "@/lib/useEscape";
 
 export default function MethodologyModal({
   summary,
@@ -16,6 +17,7 @@ export default function MethodologyModal({
   onClose: () => void;
 }) {
   const corr = congestion?.correlation;
+  useEscape(onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 pt-[6vh]"
@@ -24,6 +26,9 @@ export default function MethodologyModal({
       <div
         className="flex max-h-[88vh] w-[640px] max-w-full flex-col rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="How Raaste works"
       >
         <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
           <div className="text-sm font-semibold text-[var(--text-strong)]">How Raaste works</div>

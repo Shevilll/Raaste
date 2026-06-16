@@ -511,7 +511,13 @@ export default function HotspotMap({
   // container (the GL libs force position:relative, so it must size via h/w-full).
   return (
     <div className="absolute inset-0">
-      <div ref={containerRef} id="raaste-basemap" className="h-full w-full" />
+      <div
+        ref={containerRef}
+        id="raaste-basemap"
+        className="h-full w-full"
+        role="region"
+        aria-label="Map of Bengaluru parking hotspots"
+      />
 
       {showLive && ready && (
         <>

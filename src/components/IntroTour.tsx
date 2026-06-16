@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useEscape } from "@/lib/useEscape";
 
 const STORAGE_KEY = "raaste_tour_seen";
 
@@ -47,6 +48,8 @@ export default function IntroTour() {
     }
     setOpen(false);
   }
+
+  useEscape(markSeen);
 
   if (!open) return null;
 
