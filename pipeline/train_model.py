@@ -146,6 +146,17 @@ def main():
         rows = [feats(h0["lat"], h0["lng"], hh, dw) for dw in range(7)]
         pred_hourly.append(round(float(np.expm1(model.predict(np.array(rows))).sum()), 1))
 
+    # per-hotspot predicted hourly curve (a typical day) — powers the Forecast view
+    fr = []
+    for h in hotspots:
+        for hh in range(24):
+            for dw in range(7):
+                fr.append(feats(h["lat"], h["lng"], hh, dw))
+    fp = np.expm1(model.predict(np.array(fr))).reshape(len(hotspots), 24, 7).mean(axis=2)
+    forecast = {
+        h["id"]: [round(float(v), 2) for v in fp[i]] for i, h in enumerate(hotspots)
+    }
+
     out = {
         "model": "RandomForestRegressor · 120 trees",
         "target": "parking violations per ~220 m cell, per hour-of-week",
@@ -156,6 +167,7 @@ def main():
             "nTest": int(len(yte)),
         },
         "importances": importances,
+        "forecast": forecast,
         "sample": {
             "station": h0.get("station") or h0.get("location", "")[:40],
             "actual": h0["hourly"],

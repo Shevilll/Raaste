@@ -67,5 +67,6 @@ export interface Prediction {
   target: string;
   metrics: { r2: number; mae: number; nTrain: number; nTest: number };
   importances: [string, number][];
+  forecast: Record<string, number[]>;
   sample: { station: string; actual: number[]; predicted: number[] };
 }

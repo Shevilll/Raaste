@@ -13,6 +13,7 @@ import StatsPanel from "@/components/StatsPanel";
 import Trends from "@/components/Trends";
 import TimeControls from "@/components/TimeControls";
 import OptimizerModal from "@/components/OptimizerModal";
+import MethodologyModal from "@/components/MethodologyModal";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
@@ -33,7 +34,9 @@ export default function Dashboard() {
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showHotspots, setShowHotspots] = useState(true);
   const [showCongestion, setShowCongestion] = useState(false);
+  const [showForecast, setShowForecast] = useState(false);
   const [optimizerOpen, setOptimizerOpen] = useState(false);
+  const [methodOpen, setMethodOpen] = useState(false);
   const [teams, setTeams] = useState(8);
   const [loading, setLoading] = useState(true);
 
@@ -71,11 +74,28 @@ export default function Dashboard() {
     );
   }, [points, hour, dow]);
 
-  // hotspots filtered by station and re-ranked for the active hour / day
+  // hotspots: model-predicted when Forecast is on, else historical (re-ranked by hour/day)
   const displayHotspots = useMemo(() => {
     const base = station
       ? hotspots.filter((h) => h.station === station)
       : hotspots;
+    if (showForecast && prediction?.forecast) {
+      const fc = prediction.forecast;
+      const fv = (h: Hotspot) =>
+        hour >= 0
+          ? fc[h.id]?.[hour] ?? 0
+          : (fc[h.id] ?? []).reduce((a, b) => a + b, 0);
+      const scored = base.map((h) => ({ h, v: fv(h) })).filter((x) => x.v > 0);
+      const max = Math.max(...scored.map((x) => x.v), 1);
+      return scored
+        .sort((a, b) => b.v - a.v)
+        .map((x, i) => ({
+          ...x.h,
+          rank: i + 1,
+          count: Math.round(x.v),
+          score: Math.round((1000 * x.v) / max) / 10,
+        }));
+    }
     if (hour < 0 && dow < 0) return base;
     const valOf = (h: Hotspot) =>
       hour >= 0 ? h.hourly[hour] ?? 0 : h.daily[dow] ?? 0;
@@ -89,7 +109,7 @@ export default function Dashboard() {
         count: x.v,
         score: Math.round((1000 * x.v) / max) / 10,
       }));
-  }, [hotspots, station, hour, dow]);
+  }, [hotspots, station, hour, dow, showForecast, prediction]);
 
   const focusBounds = useMemo<
     [[number, number], [number, number]] | null
@@ -109,7 +129,11 @@ export default function Dashboard() {
     ? hotspots.find((h) => h.id === selectedId) ?? null
     : null;
 
-  const listTitle = station
+  const listTitle = showForecast
+    ? hour >= 0
+      ? `Predicted at ${hourLabel(hour)}`
+      : "Predicted hotspots"
+    : station
     ? station
     : hour >= 0
     ? `Worst at ${hourLabel(hour)}`
@@ -127,6 +151,12 @@ export default function Dashboard() {
           <span className="hidden text-xs text-slate-400 sm:inline">
             Parking-Congestion Intelligence · Bengaluru Traffic Police
           </span>
+          <button
+            onClick={() => setMethodOpen(true)}
+            className="hidden text-xs text-slate-500 underline-offset-2 hover:text-amber-400 hover:underline sm:inline"
+          >
+            How it works
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -142,6 +172,9 @@ export default function Dashboard() {
             set={setShowCongestion}
             label="Congestion"
           />
+          {prediction && (
+            <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
+          )}
         </div>
       </header>
 
@@ -218,6 +251,15 @@ export default function Dashboard() {
           teams={teams}
           setTeams={setTeams}
           onClose={() => setOptimizerOpen(false)}
+        />
+      )}
+
+      {methodOpen && summary && (
+        <MethodologyModal
+          summary={summary}
+          congestion={congestion}
+          prediction={prediction}
+          onClose={() => setMethodOpen(false)}
         />
       )}
     </div>
