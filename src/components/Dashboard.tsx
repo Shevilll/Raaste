@@ -30,6 +30,15 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { planRoute } from "@/lib/route";
 import { Mini, ScoreChip } from "@/components/Stat";
 import { fmt, hourRange, hourLabel, DAYS } from "@/lib/format";
+import {
+  Zap,
+  ClipboardList,
+  Link2,
+  Check,
+  X,
+  ArrowLeft,
+  ArrowRight,
+} from "lucide-react";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
   ssr: false,
@@ -323,24 +332,36 @@ export default function Dashboard() {
           <ThemeToggle />
           <button
             onClick={() => setOptimizerOpen(true)}
-            className="rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 lg:py-1"
+            className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 lg:py-1"
           >
-            ⚡ Patrol plan
+            <Zap className="h-3.5 w-3.5" aria-hidden />
+            Patrol plan
           </button>
           <Link
             href={`/briefing${
               station ? `?station=${encodeURIComponent(station)}` : ""
             }`}
-            className="rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
           >
-            📋 Beat sheet
+            <ClipboardList className="h-3.5 w-3.5" aria-hidden />
+            Beat sheet
           </Link>
           <button
             onClick={copyShareLink}
             title="Copy a link to the current view"
-            className="rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
           >
-            {copied ? "✓ Link copied" : "🔗 Copy link"}
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5" aria-hidden />
+                Link copied
+              </>
+            ) : (
+              <>
+                <Link2 className="h-3.5 w-3.5" aria-hidden />
+                Copy link
+              </>
+            )}
           </button>
           <Toggle on={showHeatmap} set={setShowHeatmap} label="Heatmap" />
           <Toggle on={showHotspots} set={setShowHotspots} label="Hotspots" />
@@ -494,9 +515,12 @@ export default function Dashboard() {
           {route && (
             <button
               onClick={() => setRoute(null)}
-              className="absolute bottom-3 right-3 z-10 max-w-[calc(100%-1.5rem)] truncate rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] shadow-lg hover:bg-amber-500/10 lg:bottom-auto lg:right-auto lg:left-3 lg:top-3"
+              className="absolute bottom-3 right-3 z-10 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1 rounded-full border border-amber-500/60 bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] shadow-lg hover:bg-amber-500/10 lg:bottom-auto lg:right-auto lg:left-3 lg:top-3"
             >
-              Patrol route · {route.km.toFixed(1)} km · clear ✕
+              <span className="truncate">
+                Patrol route · {route.km.toFixed(1)} km · clear
+              </span>
+              <X className="h-3 w-3 shrink-0" aria-hidden />
             </button>
           )}
           <Legend showBlind={showBlind} />
@@ -667,9 +691,10 @@ function ProofPanel({ c, onShow }: { c: Congestion; onShow: () => void }) {
         <span>{fmt(x.totalEvents)} ASTraM events cross-referenced</span>
         <button
           onClick={onShow}
-          className="text-[var(--danger-text)] hover:opacity-80"
+          className="inline-flex items-center gap-1 text-[var(--danger-text)] hover:opacity-80"
         >
-          show on map →
+          show on map
+          <ArrowRight className="h-3 w-3" aria-hidden />
         </button>
       </div>
     </div>
@@ -718,9 +743,10 @@ function BlindspotPanel({
         </span>
         <button
           onClick={onShow}
-          className="text-[var(--blind-text)] hover:opacity-80"
+          className="inline-flex items-center gap-1 text-[var(--blind-text)] hover:opacity-80"
         >
-          show on map →
+          show on map
+          <ArrowRight className="h-3 w-3" aria-hidden />
         </button>
       </div>
       <div className="mt-2 space-y-1.5">
@@ -779,9 +805,10 @@ function StationFilter({
         {active && (
           <button
             onClick={() => onSelect(null)}
-            className="text-[10px] text-[var(--accent-text)] hover:opacity-80"
+            className="inline-flex items-center gap-1 text-[10px] text-[var(--accent-text)] hover:opacity-80"
           >
-            clear ✕
+            clear
+            <X className="h-3 w-3" aria-hidden />
           </button>
         )}
       </div>
@@ -864,9 +891,10 @@ function HotspotDetail({
     <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
       <button
         onClick={onBack}
-        className="mb-2 -ml-1 inline-flex min-h-[28px] items-center rounded px-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
+        className="mb-2 -ml-1 inline-flex min-h-[28px] items-center gap-1 rounded px-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
       >
-        ← back to list
+        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+        back to list
       </button>
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-[var(--text-strong)]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Play, Pause } from "lucide-react";
 import { DAYS, hourLabel } from "@/lib/format";
 
 interface Props {
@@ -38,9 +39,13 @@ export default function TimeControls({
         <button
           onClick={() => setPlaying(!playing)}
           aria-label={playing ? "Pause" : "Play through the day"}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[11px] text-slate-950 hover:bg-amber-400 sm:h-7 sm:w-7"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-slate-950 hover:bg-amber-400 sm:h-7 sm:w-7"
         >
-          {playing ? "❚❚" : "▶"}
+          {playing ? (
+            <Pause className="h-4 w-4 fill-current" aria-hidden />
+          ) : (
+            <Play className="h-4 w-4 fill-current" aria-hidden />
+          )}
         </button>
         <input
           type="range"

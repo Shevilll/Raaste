@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import type { Junction } from "@/lib/types";
 import { fmt, hourRange, DAYS } from "@/lib/format";
 import { Mini, ScoreChip } from "@/components/Stat";
@@ -16,9 +17,10 @@ export default function JunctionDetail({
     <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
       <button
         onClick={onBack}
-        className="mb-2 -ml-1 inline-flex min-h-[28px] items-center rounded px-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
+        className="mb-2 -ml-1 inline-flex min-h-[28px] items-center gap-1 rounded px-1 text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
       >
-        ← back to junctions
+        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+        back to junctions
       </button>
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-[var(--text-strong)]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import type { Congestion, Hotspot } from "@/lib/types";
 import { fmt, hourRange } from "@/lib/format";
 import { useEscape } from "@/lib/useEscape";
@@ -189,7 +190,7 @@ export default function OptimizerModal({
             className="-mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-strong)]"
             aria-label="Close"
           >
-            ✕
+            <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
 

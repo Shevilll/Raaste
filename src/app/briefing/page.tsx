@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
 import type { Summary, Hotspot, Congestion, Fines } from "@/lib/types";
 import { buildBeatSheet, SHIFTS, type BeatCorner } from "@/lib/beatsheet";
 import { fmt, hourRange } from "@/lib/format";
@@ -104,9 +105,10 @@ export default function BriefingPage() {
       <div className="no-print sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:gap-3">
         <Link
           href="/"
-          className="rounded-full bg-[var(--chip)] px-3 py-1.5 text-xs font-medium text-[var(--text)] hover:bg-[var(--track)]"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--chip)] px-3 py-1.5 text-xs font-medium text-[var(--text)] hover:bg-[var(--track)]"
         >
-          ← Map
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          Map
         </Link>
         <span className="text-sm font-semibold text-[var(--text-strong)]">
           Patrol beat sheet
@@ -272,10 +274,13 @@ function CornerRow({ c, radiusM }: { c: BeatCorner; radiusM: number }) {
         </div>
 
         {c.congestionNearby > 0 && (
-          <div className="mt-2 inline-block rounded bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-700">
-            ⚠ {c.congestionNearby} real congestion event
-            {c.congestionNearby === 1 ? "" : "s"} within {radiusM} m
-            {c.congestionM != null ? ` · nearest ${c.congestionM} m` : ""}
+          <div className="mt-2 inline-flex items-start gap-1 rounded bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-700">
+            <TriangleAlert className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+            <span>
+              {c.congestionNearby} real congestion event
+              {c.congestionNearby === 1 ? "" : "s"} within {radiusM} m
+              {c.congestionM != null ? ` · nearest ${c.congestionM} m` : ""}
+            </span>
           </div>
         )}
       </div>

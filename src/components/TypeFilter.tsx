@@ -1,5 +1,7 @@
 "use client";
 
+import { X } from "lucide-react";
+
 export default function TypeFilter({
   legend,
   selected,
@@ -18,9 +20,10 @@ export default function TypeFilter({
         {selected !== null && (
           <button
             onClick={() => onSelect(null)}
-            className="text-[10px] text-[var(--accent-text)] hover:opacity-80"
+            className="inline-flex items-center gap-1 text-[10px] text-[var(--accent-text)] hover:opacity-80"
           >
-            clear ✕
+            clear
+            <X className="h-3 w-3" aria-hidden />
           </button>
         )}
       </div>

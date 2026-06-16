@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Play, X } from "lucide-react";
 import { useEscape } from "@/lib/useEscape";
 
 const STORAGE_KEY = "raaste_tour_seen";
@@ -16,7 +17,13 @@ const STEPS = [
   },
   {
     title: "See it across the day",
-    body: "Use the time scrubber up top (▶ to animate) to watch hotspots shift by hour and day.",
+    body: (
+      <>
+        Use the time scrubber up top (
+        <Play className="inline h-3 w-3 fill-current align-[-0.1em]" aria-hidden />{" "}
+        to animate) to watch hotspots shift by hour and day.
+      </>
+    ),
   },
   {
     title: "Act on it",
@@ -70,7 +77,7 @@ export default function IntroTour() {
           className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:text-[var(--text-strong)]"
           aria-label="Dismiss tour"
         >
-          ✕
+          <X className="h-5 w-5" aria-hidden />
         </button>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-5 pt-7">

@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { X } from "lucide-react";
 import type { Summary, Congestion, Prediction } from "@/lib/types";
 import { fmt } from "@/lib/format";
 import { useEscape } from "@/lib/useEscape";
@@ -37,7 +38,7 @@ export default function MethodologyModal({
             className="-mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-strong)]"
             aria-label="Close"
           >
-            ✕
+            <X className="h-5 w-5" aria-hidden />
           </button>
         </div>
 
