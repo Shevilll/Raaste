@@ -229,7 +229,7 @@ export default function OptimizerModal({
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-amber-400">{pct}%</span>
+            <span className="text-2xl font-semibold text-[var(--accent-text)]">{pct}%</span>
             <span className="text-xs text-[var(--text)]">
               of all parking-violation impact city-wide, covered by deploying{" "}
               {teams} team{teams > 1 ? "s" : ""} to these zones.
@@ -240,7 +240,7 @@ export default function OptimizerModal({
               These{" "}
               <span className="font-semibold text-[var(--text-strong)]">{plan.length}</span>{" "}
               zones sit on{" "}
-              <span className="font-semibold text-amber-400">
+              <span className="font-semibold text-[var(--accent-text)]">
                 {fmt(planEvents)}
               </span>{" "}
               logged congestion event{planEvents === 1 ? "" : "s"}.
@@ -269,7 +269,7 @@ export default function OptimizerModal({
                 const near = nearbyOf(h);
                 return (
                   <tr key={h.id} className="border-t border-[var(--border)]">
-                    <td className="px-2 py-1.5 align-top font-semibold text-amber-500">
+                    <td className="px-2 py-1.5 align-top font-semibold text-[var(--accent-text)]">
                       {i + 1}
                     </td>
                     <td className="px-2 py-1.5">

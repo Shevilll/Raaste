@@ -71,7 +71,7 @@ export default function IntroTour() {
         </button>
 
         <div className="px-6 pb-5 pt-7">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-amber-400/90">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--accent-text)]">
             Step {step + 1} of {STEPS.length}
           </div>
 

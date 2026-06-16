@@ -502,7 +502,7 @@ function StationFilter({
         {active && (
           <button
             onClick={() => onSelect(null)}
-            className="text-[10px] text-amber-400 hover:text-amber-300"
+            className="text-[10px] text-[var(--accent-text)] hover:opacity-80"
           >
             clear ✕
           </button>
@@ -554,7 +554,7 @@ function RankedList({
             onClick={() => onSelect(h.id)}
             className="flex w-full items-center gap-2 rounded-md bg-[var(--chip)] px-2 py-1.5 text-left hover:bg-[var(--chip)]"
           >
-            <span className="w-6 shrink-0 text-xs font-semibold text-amber-500">
+            <span className="w-6 shrink-0 text-xs font-semibold text-[var(--accent-text)]">
               #{h.rank}
             </span>
             <span className="min-w-0 flex-1">
@@ -615,7 +615,7 @@ function HotspotDetail({
       </div>
 
       {congestion && (
-        <div className="mt-2 rounded bg-red-950/30 px-2 py-1.5 text-[11px] text-red-200/90">
+        <div className="mt-2 rounded bg-[var(--danger-bg)] px-2 py-1.5 text-[11px] text-[var(--danger-text)]">
           {congestion.nearby[h.id] ?? 0} real congestion events within{" "}
           {congestion.correlation.radiusM}m
           {congestion.minDistM[h.id] !== undefined
@@ -670,7 +670,7 @@ function ScoreChip({ score }: { score: number }) {
       ? "bg-red-500/20 text-[var(--danger-text)]"
       : score >= 45
       ? "bg-amber-500/20 text-[var(--accent-text)]"
-      : "bg-slate-600/30 text-slate-300";
+      : "bg-[var(--chip)] text-[var(--text)]";
   return (
     <span
       className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${hue}`}
@@ -695,7 +695,10 @@ function Legend() {
       <div className="mb-1 uppercase tracking-wider">Violation density</div>
       <div className="flex items-center gap-1">
         <span>low</span>
-        <div className="h-2 w-28 rounded bg-gradient-to-r from-[#163b6e] via-[#22a0a0] via-40% to-[#d62828]" />
+        <div
+          className="h-2 w-28 rounded"
+          style={{ backgroundImage: "linear-gradient(to right, var(--heat-grad))" }}
+        />
         <span>high</span>
       </div>
       <div className="mt-1.5 flex items-center gap-1">

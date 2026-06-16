@@ -53,6 +53,17 @@ const HEAT_RANGE: [number, number, number][] = [
   [214, 40, 40],
 ];
 
+// warm YlOrRd ramp for the light basemap (no dark colours that smudge on a light map)
+const HEAT_RANGE_LIGHT: [number, number, number][] = [
+  [255, 255, 178],
+  [254, 217, 118],
+  [254, 178, 76],
+  [253, 141, 60],
+  [252, 78, 42],
+  [227, 26, 28],
+  [177, 0, 38],
+];
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let mapplsSdk: Promise<any> | null = null;
 
@@ -163,6 +174,7 @@ export default function HotspotMap({
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
   const [ready, setReady] = useState(false);
+  const [isLight, setIsLight] = useState(false);
 
   // Live-feed simulation: lightweight DOM pings projected over the map.
   const [pings, setPings] = useState<Ping[]>([]);
@@ -237,6 +249,21 @@ export default function HotspotMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // track the active theme so the heatmap palette can adapt (light vs dark basemap)
+  useEffect(() => {
+    const read = () =>
+      setIsLight(
+        document.documentElement.getAttribute("data-theme") === "light"
+      );
+    read();
+    const obs = new MutationObserver(read);
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => obs.disconnect();
+  }, []);
+
   // fly to a selected station's hotspots
   useEffect(() => {
     const map = mapRef.current;
@@ -277,8 +304,8 @@ export default function HotspotMap({
           radiusPixels: 38,
           intensity: 1,
           threshold: 0.05,
-          colorRange: HEAT_RANGE,
-          opacity: 0.85,
+          colorRange: isLight ? HEAT_RANGE_LIGHT : HEAT_RANGE,
+          opacity: isLight ? 0.7 : 0.85,
         })
       );
     }
@@ -407,6 +434,7 @@ export default function HotspotMap({
     showCongestion,
     selectedId,
     route,
+    isLight,
     onSelect,
   ]);
 

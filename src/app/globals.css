@@ -37,6 +37,7 @@ body {
   --danger-bg: rgba(127, 29, 29, 0.18); --danger-border: rgba(153, 27, 27, 0.45);
   --info-text: #7dd3fc; --info-bg: rgba(8, 47, 73, 0.12);
   --info-border: rgba(12, 74, 110, 0.4);
+  --heat-grad: #163b6e, #22a0a0 40%, #d62828;
 }
 html[data-theme="light"] {
   --bg: #eef2f7; --surface: #ffffff; --panel: #f8fafc; --border: #e2e8f0;
@@ -46,6 +47,7 @@ html[data-theme="light"] {
   --accent-text: #b45309; --danger-text: #b91c1c;
   --danger-bg: #fef2f2; --danger-border: #fecaca;
   --info-text: #0369a1; --info-bg: #f0f9ff; --info-border: #bae6fd;
+  --heat-grad: #fde68a, #f59e0b 45%, #b91c1c;
 }
 
 /* Dark-mode the Mappls (production) basemap so it matches the dark UI. This only

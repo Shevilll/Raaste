@@ -18,7 +18,7 @@ export default function TypeFilter({
         {selected !== null && (
           <button
             onClick={() => onSelect(null)}
-            className="text-[10px] text-amber-400 hover:text-amber-300"
+            className="text-[10px] text-[var(--accent-text)] hover:opacity-80"
           >
             clear ✕
           </button>
