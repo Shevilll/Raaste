@@ -27,7 +27,7 @@ const STEPS = [
   },
   {
     title: "Act on it",
-    body: "Turn on Congestion to see the parking↔congestion proof, switch on Forecast, or hit Patrol plan for a deployable schedule.",
+    body: "The side panel is tabbed: Impact pairs parking with real congestion, Forecast holds the model and time patterns, Enforce tracks offenders and fines. Use Layers (top right) to switch map overlays, or hit Patrol plan for a deployable schedule.",
   },
 ];
 

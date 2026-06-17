@@ -44,7 +44,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Smartphone,
+  Layers,
 } from "lucide-react";
+import { useEscape } from "@/lib/useEscape";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
   ssr: false,
@@ -56,6 +58,21 @@ const DEFAULT_PANEL_W = 340;
 const PANEL_W_KEY = "raaste:panelW";
 const clampPanelW = (w: number) =>
   Math.max(MIN_PANEL_W, Math.min(w, window.innerWidth / 2));
+
+// Secondary header actions: quiet, neutral chrome. Amber is reserved for the one
+// primary action (Patrol plan) so it actually reads as primary.
+const SECONDARY_BTN =
+  "inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--chip)] hover:text-[var(--text)] lg:py-1";
+
+// The side panel is split into four tabs so one screen shows one job, instead of
+// the whole stack of cards at once.
+type TabKey = "overview" | "impact" | "forecast" | "enforce";
+const PANEL_TABS: [TabKey, string][] = [
+  ["overview", "Overview"],
+  ["impact", "Impact"],
+  ["forecast", "Forecast"],
+  ["enforce", "Enforce"],
+];
 
 export default function Dashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -70,6 +87,7 @@ export default function Dashboard() {
   const [blind, setBlind] = useState<BlindspotsFile | null>(null);
   const [blindId, setBlindId] = useState<string | null>(null);
   const [lens, setLens] = useState<"station" | "junction">("station");
+  const [tab, setTab] = useState<TabKey>("overview");
   const [junctionId, setJunctionId] = useState<string | null>(null);
   const [showJunctions, setShowJunctions] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -95,6 +113,9 @@ export default function Dashboard() {
   const [error, setError] = useState(false);
   const [panelW, setPanelW] = useState(DEFAULT_PANEL_W);
   const resizing = useRef(false);
+  const asideRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   // restore the saved panel width, and keep it within half the screen on resize
   useEffect(() => {
@@ -241,6 +262,25 @@ export default function Dashboard() {
     showForecast,
   ]);
 
+  // each tab is its own short list, so reset the panel scroll when switching
+  useEffect(() => {
+    if (asideRef.current) asideRef.current.scrollTop = 0;
+  }, [tab]);
+
+  // on mobile the header is pinned and can wrap to more than one row, so track
+  // its height and park the sticky panel tabs right below it
+  useEffect(() => {
+    const header = headerRef.current;
+    const root = rootRef.current;
+    if (!header || !root) return;
+    const sync = () =>
+      root.style.setProperty("--header-h", `${header.offsetHeight}px`);
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(header);
+    return () => ro.disconnect();
+  }, []);
+
   const center: [number, number] = summary?.cityCenter ?? [12.97, 77.59];
 
   const handleSelect = useCallback((h: Hotspot | null) => {
@@ -376,8 +416,15 @@ export default function Dashboard() {
     : "Worst hotspots";
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col bg-[var(--bg)] text-[var(--text)] lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
-      <header className="sticky top-0 z-20 flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4 lg:static lg:py-1.5 lg:pt-1.5">
+    <div
+      ref={rootRef}
+      style={{ "--header-h": "56px" } as CSSProperties}
+      className="flex min-h-[100dvh] w-full flex-col bg-[var(--bg)] text-[var(--text)] lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden"
+    >
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-20 flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4 lg:static lg:py-1.5 lg:pt-1.5"
+      >
         <div className="flex shrink-0 items-baseline gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-[var(--text-strong)]">
             Raa<span className="text-[var(--accent-text)]">ste</span>
@@ -393,7 +440,17 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
-          <ThemeToggle />
+          <LayersControl
+            layers={[
+              { label: "Heatmap", on: showHeatmap, set: setShowHeatmap },
+              { label: "Hotspots", on: showHotspots, set: setShowHotspots },
+              { label: "Congestion", on: showCongestion, set: setShowCongestion },
+              { label: "Blind spots", on: showBlind, set: setShowBlind },
+              { label: "Forecast", on: showForecast, set: setShowForecast },
+              { label: "Live", on: showLive, set: setShowLive },
+              { label: "Junctions", on: showJunctions, set: setShowJunctions },
+            ]}
+          />
           <button
             onClick={() => setOptimizerOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 lg:py-1"
@@ -408,22 +465,19 @@ export default function Dashboard() {
               if (station) sessionStorage.setItem("raaste:station", station);
               else sessionStorage.removeItem("raaste:station");
             }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+            className={SECONDARY_BTN}
           >
             <ClipboardList className="h-3.5 w-3.5" aria-hidden />
             Beat sheet
           </Link>
-          <Link
-            href="/field"
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
-          >
+          <Link href="/field" className={SECONDARY_BTN}>
             <Smartphone className="h-3.5 w-3.5" aria-hidden />
             Field mode
           </Link>
           <button
             onClick={copyShareLink}
             title="Copy a link to the current view"
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+            className={SECONDARY_BTN}
           >
             {copied ? (
               <>
@@ -437,53 +491,19 @@ export default function Dashboard() {
               </>
             )}
           </button>
-          <Toggle on={showHeatmap} set={setShowHeatmap} label="Heatmap" />
-          <Toggle on={showHotspots} set={setShowHotspots} label="Hotspots" />
-          <Toggle
-            on={showCongestion}
-            set={setShowCongestion}
-            label="Congestion"
-          />
-          {/* Rendered unconditionally so the toolbar doesn't reflow when the
-              blindspot/prediction data finishes loading on reload — the layers
-              simply stay empty until their data arrives. */}
-          <Toggle on={showBlind} set={setShowBlind} label="Blind spots" />
-          <Toggle on={showForecast} set={setShowForecast} label="Forecast" />
-          <Toggle on={showLive} set={setShowLive} label="Live" />
-          <Toggle on={showJunctions} set={setShowJunctions} label="Junctions" />
+          <ThemeToggle />
         </div>
       </header>
 
       <div className="relative flex flex-1 flex-col overflow-visible lg:flex-row lg:overflow-hidden">
         <aside
+          ref={asideRef}
           style={{ "--panel-w": `${panelW}px` } as CSSProperties}
           className="z-10 order-2 flex w-full shrink-0 flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:order-none lg:w-[var(--panel-w)] lg:overflow-y-auto lg:border-t-0 lg:pb-3"
         >
-          {summary && <StatsPanel summary={summary} />}
-          {congestion && (
-            <ProofPanel c={congestion} onShow={() => setShowCongestion(true)} />
-          )}
-          {blind && blind.count > 0 && (
-            <BlindspotPanel
-              data={blind}
-              selectedId={blindId}
-              onShow={() => setShowBlind(true)}
-              onSelect={(id) => {
-                setShowBlind(true);
-                setBlindId((cur) => (cur === id ? null : id));
-              }}
-            />
-          )}
-          {summary && (
-            <CoverageChart hotspots={hotspots} totalImpact={summary.totalImpact} />
-          )}
-          {sim && <WhatIfPanel sim={sim} />}
-          {summary && <Trends summary={summary} hour={hour} dow={dow} />}
-          {summary?.monthly && <MonthlyTrend monthly={summary.monthly} />}
-          {prediction && <ModelCard p={prediction} />}
-          {offenders && <Offenders data={offenders} />}
-          {fines && <RevenuePanel fines={fines} />}
           {selectedHotspot ? (
+            // a picked hotspot takes over the panel, rather than hiding under a
+            // stack of cards the way it used to
             <HotspotDetail
               h={selectedHotspot}
               congestion={congestion}
@@ -497,39 +517,99 @@ export default function Dashboard() {
             />
           ) : (
             <>
-              {junctionsData && <LensToggle lens={lens} setLens={handleLensChange} />}
-              {lens === "station" ? (
+              <div className="sticky top-[var(--header-h)] z-10 -mx-3 -mt-3 border-b border-[var(--border)] bg-[var(--surface)] px-3 pb-2 pt-3 lg:top-0">
+                <PanelTabs tab={tab} setTab={setTab} />
+              </div>
+
+              {tab === "overview" && (
                 <>
+                  {summary && <StatsPanel summary={summary} />}
                   {summary && (
-                    <StationFilter
-                      stations={summary.topStations}
-                      active={station}
-                      onSelect={setStation}
+                    <CoverageChart
+                      hotspots={hotspots}
+                      totalImpact={summary.totalImpact}
                     />
                   )}
-                  {summary && (
-                    <TypeFilter
-                      legend={summary.typeLegend}
-                      selected={typeIdx}
-                      onSelect={setTypeIdx}
-                    />
+                  {junctionsData && (
+                    <LensToggle lens={lens} setLens={handleLensChange} />
                   )}
-                  {/* Gated on summary like the panels above so the list's
-                      empty state ("No hotspots for this filter") isn't shown
-                      while data is still loading on reload — a genuine empty
-                      filter still shows it once loaded. */}
-                  {summary && (
-                    <RankedList
-                      hotspots={displayHotspots}
-                      title={listTitle}
-                      onSelect={setSelectedId}
-                    />
+                  {lens === "station" ? (
+                    <>
+                      {summary && (
+                        <StationFilter
+                          stations={summary.topStations}
+                          active={station}
+                          onSelect={setStation}
+                        />
+                      )}
+                      {summary && (
+                        <TypeFilter
+                          legend={summary.typeLegend}
+                          selected={typeIdx}
+                          onSelect={setTypeIdx}
+                        />
+                      )}
+                      {/* Gated on summary like the panels above so the list's
+                          empty state ("No hotspots for this filter") isn't shown
+                          while data is still loading on reload — a genuine empty
+                          filter still shows it once loaded. */}
+                      {summary && (
+                        <RankedList
+                          hotspots={displayHotspots}
+                          title={listTitle}
+                          onSelect={setSelectedId}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    junctionsData && (
+                      <JunctionList
+                        data={junctionsData}
+                        onSelect={setJunctionId}
+                      />
+                    )
                   )}
                 </>
-              ) : (
-                junctionsData && (
-                  <JunctionList data={junctionsData} onSelect={setJunctionId} />
-                )
+              )}
+
+              {tab === "impact" && (
+                <>
+                  {congestion && (
+                    <ProofPanel
+                      c={congestion}
+                      onShow={() => setShowCongestion(true)}
+                    />
+                  )}
+                  {blind && blind.count > 0 && (
+                    <BlindspotPanel
+                      data={blind}
+                      selectedId={blindId}
+                      onShow={() => setShowBlind(true)}
+                      onSelect={(id) => {
+                        setShowBlind(true);
+                        setBlindId((cur) => (cur === id ? null : id));
+                      }}
+                    />
+                  )}
+                  {sim && <WhatIfPanel sim={sim} />}
+                </>
+              )}
+
+              {tab === "forecast" && (
+                <>
+                  {prediction && <ModelCard p={prediction} />}
+                  {summary && <Trends summary={summary} hour={hour} dow={dow} />}
+                  {summary?.monthly && (
+                    <MonthlyTrend monthly={summary.monthly} />
+                  )}
+                </>
+              )}
+
+              {tab === "enforce" && (
+                <>
+                  {offenders && <Offenders data={offenders} />}
+                  {fines && <RevenuePanel fines={fines} />}
+                </>
               )}
             </>
           )}
@@ -653,26 +733,98 @@ export default function Dashboard() {
   );
 }
 
-function Toggle({
-  on,
-  set,
-  label,
+type Layer = { label: string; on: boolean; set: (v: boolean) => void };
+
+// The map layers used to be seven amber pills strung across the header. They're
+// now folded into one button that opens a checklist popover, so the header reads
+// as a short row of actions instead of a wall of toggles.
+function LayersControl({ layers }: { layers: Layer[] }) {
+  const [open, setOpen] = useState(false);
+  useEscape(() => setOpen(false));
+  const activeCount = layers.filter((l) => l.on).length;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={`${SECONDARY_BTN} ${
+          open ? "bg-[var(--chip)] text-[var(--text)]" : ""
+        }`}
+      >
+        <Layers className="h-3.5 w-3.5" aria-hidden />
+        Layers
+        <span className="tabular-nums text-[var(--text-faint)]">
+          {activeCount}
+        </span>
+      </button>
+      {open && (
+        <>
+          {/* click-away catcher — closing on any outside click */}
+          <button
+            aria-label="Close layers"
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-30 cursor-default"
+          />
+          <div className="absolute right-0 top-full z-40 mt-1.5 w-52 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl">
+            <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--text-faint)]">
+              Map layers
+            </div>
+            {layers.map((l) => (
+              <button
+                key={l.label}
+                onClick={() => l.set(!l.on)}
+                className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-xs text-[var(--text)] hover:bg-[var(--chip)]"
+              >
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                    l.on
+                      ? "border-amber-500 bg-amber-500 text-slate-950"
+                      : "border-[var(--border-strong)]"
+                  }`}
+                >
+                  {l.on && <Check className="h-3 w-3" aria-hidden />}
+                </span>
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PanelTabs({
+  tab,
+  setTab,
 }: {
-  on: boolean;
-  set: (v: boolean) => void;
-  label: string;
+  tab: TabKey;
+  setTab: (t: TabKey) => void;
 }) {
   return (
-    <button
-      onClick={() => set(!on)}
-      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors lg:py-1 ${
-        on
-          ? "bg-amber-500 text-slate-950"
-          : "bg-[var(--chip)] text-[var(--text-muted)] hover:bg-[var(--track)]"
-      }`}
+    <div
+      role="tablist"
+      className="flex gap-0.5 rounded-lg bg-[var(--chip)] p-0.5"
     >
-      {label}
-    </button>
+      {PANEL_TABS.map(([key, label]) => (
+        <button
+          key={key}
+          role="tab"
+          aria-selected={tab === key}
+          onClick={() => setTab(key)}
+          className={`flex-1 rounded-md px-1.5 py-1.5 text-xs font-medium transition-colors ${
+            tab === key
+              ? "bg-[var(--surface)] text-[var(--text-strong)] shadow-sm"
+              : "text-[var(--text-muted)] hover:text-[var(--text)]"
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -683,8 +835,8 @@ function ModelCard({ p }: { p: Prediction }) {
   const maxA = Math.max(...a, 1);
   const maxP = Math.max(...pr, 1);
   return (
-    <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
-      <div className="text-[11px] uppercase tracking-wider text-[var(--info-text)]">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         AI forecast model
       </div>
       <div className="mt-1 flex items-baseline gap-2">
@@ -1171,8 +1323,8 @@ function WhatIfPanel({ sim }: { sim: Simulator }) {
   const events = sim.events[i] ?? 0;
   const maxImpact = sim.impactPct[sim.nMax - 1] || 1;
   return (
-    <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
-      <div className="text-[11px] uppercase tracking-wider text-[var(--info-text)]">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3">
+      <div className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
         What-if · clear the worst hotspots
       </div>
       <div className="mt-1 flex items-baseline gap-2">
