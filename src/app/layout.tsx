@@ -45,9 +45,9 @@ export const viewport: Viewport = {
   ],
 };
 
-// Apply the saved theme before first paint so returning light-mode visitors
-// don't flash dark.
-const themeScript = `(function(){try{if(localStorage.getItem('raaste_theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();`;
+// Light is the default. Set it before first paint so first-time visitors never
+// flash dark; only returning visitors who explicitly chose dark stay dark.
+const themeScript = `(function(){var d=document.documentElement;d.setAttribute('data-theme','light');try{if(localStorage.getItem('raaste_theme')==='dark')d.removeAttribute('data-theme');}catch(e){}})();`;
 
 export default function RootLayout({
   children,

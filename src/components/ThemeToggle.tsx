@@ -13,16 +13,16 @@ function apply(theme: Theme) {
 }
 
 export default function ThemeToggle() {
-  // Default to dark; the real value is read from localStorage on mount so we
+  // Default to light; the real value is read from localStorage on mount so we
   // never read storage during render (and so SSR stays consistent).
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    let stored: Theme = "dark";
+    let stored: Theme = "light";
     try {
-      stored = localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
+      stored = localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
     } catch {
-      // Storage blocked (private mode) — fall back to the dark default.
+      // Storage blocked (private mode) — fall back to the light default.
     }
     setTheme(stored);
     apply(stored);
