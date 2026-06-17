@@ -10,6 +10,7 @@ import {
   clearShiftLog,
   recordOutcome,
   undoLast,
+  visitedInOrder,
   tally,
   localDate,
   browserStore,
@@ -62,7 +63,24 @@ export default function FieldShift({
   }, [sheet.corners, log.entries, nearestFirst, geo.coords]);
 
   const t = tally(log);
-  const current = remaining[0] ?? null;
+
+  // Pin the corner being shown. "remaining" re-sorts on every GPS tick under
+  // nearest-first, so without a lock the card could swap out from under the
+  // officer mid-tap; the active corner only advances once it's actioned (and
+  // leaves "remaining") or the officer steps back.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const pinned = activeId
+    ? remaining.find((c) => c.hotspot.id === activeId)
+    : undefined;
+  const current = pinned ?? remaining[0] ?? null;
+  useEffect(() => {
+    const id = current ? current.hotspot.id : null;
+    if (id !== activeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveId(id);
+    }
+  }, [current, activeId]);
+
   // Position by how many corners are already done, so the "Corner X of N" label
   // and progress bar stay monotonic even when "nearest first" reorders what's left.
   const currentIndex = current ? sheet.corners.length - remaining.length : -1;
@@ -77,7 +95,13 @@ export default function FieldShift({
     persist(recordOutcome(log, current.hotspot.id, o, current.fine, Date.now()));
   };
 
-  const back = () => persist(undoLast(log));
+  const back = () => {
+    const ordered = visitedInOrder(log);
+    if (!ordered.length) return;
+    // Re-open the corner we most recently actioned and show it again.
+    setActiveId(ordered[ordered.length - 1].cornerId);
+    persist(undoLast(log));
+  };
 
   const navigate = () => {
     if (!current) return;
@@ -93,6 +117,7 @@ export default function FieldShift({
     const store = browserStore();
     if (store) clearShiftLog(sheet.station, sheet.shift.id, date, store);
     setLog(emptyShiftLog(sheet.station, sheet.shift.id, date));
+    setActiveId(null);
     setEnded(false);
   };
 
