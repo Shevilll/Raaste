@@ -102,11 +102,13 @@ html[data-theme="light"] .mapboxgl-canvas {
     overflow: visible !important;
     background: #ffffff !important;
   }
-  .briefing-root {
+  .briefing-root,
+  .field-root {
     height: auto !important;
     display: block !important;
   }
-  .briefing-scroll {
+  .briefing-scroll,
+  .field-scroll {
     height: auto !important;
     overflow: visible !important;
     background: #ffffff !important;
