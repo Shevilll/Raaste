@@ -6,6 +6,7 @@ import { ArrowLeft, TriangleAlert } from "lucide-react";
 import type { Summary, Hotspot, Congestion, Fines } from "@/lib/types";
 import { buildBeatSheet, SHIFTS, type BeatCorner } from "@/lib/beatsheet";
 import { fmt, hourRange } from "@/lib/format";
+import OnPhoneQR from "@/components/field/OnPhoneQR";
 
 // Round to a whole number once we're into double digits, otherwise keep one decimal
 // so small per-day expectations don't all collapse to "0".
@@ -138,6 +139,9 @@ export default function BriefingPage() {
             </button>
           ))}
         </div>
+        {station && (
+          <OnPhoneQR station={station} shiftId={shiftId} />
+        )}
         <button
           onClick={() => window.print()}
           className="ml-auto rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400"
