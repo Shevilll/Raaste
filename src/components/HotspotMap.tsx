@@ -693,7 +693,6 @@ export default function HotspotMap({
       } catch {}
       setPings([]);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showLive, ready, hotspots]);
 
   // Outer div keeps the Tailwind `absolute inset-0`; the inner div is the map

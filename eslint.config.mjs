@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Python pipeline's virtualenv ships its own JS — not ours to lint.
+    ".venv/**",
+    "__pycache__/**",
   ]),
 ]);
 

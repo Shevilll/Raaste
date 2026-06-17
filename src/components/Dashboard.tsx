@@ -204,7 +204,6 @@ export default function Dashboard() {
     if (p.has("hot")) setShowHotspots(p.get("hot") !== "0");
     if (p.has("cong")) setShowCongestion(p.get("cong") === "1");
     if (p.has("fc")) setShowForecast(p.get("fc") === "1");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // build a shareable link for the current view, copied on demand — the URL
@@ -550,7 +549,7 @@ export default function Dashboard() {
           className="z-20 hidden w-1.5 shrink-0 cursor-col-resize touch-none bg-[var(--border)] transition-colors hover:bg-[var(--accent-text)] focus-visible:bg-[var(--accent-text)] focus-visible:outline-none lg:block"
         />
 
-        <main className="relative order-1 h-[55dvh] min-h-[420px] w-full lg:order-none lg:h-auto lg:min-h-0 lg:flex-1">
+        <main className="relative isolate order-1 h-[55dvh] min-h-[420px] w-full lg:order-none lg:h-auto lg:min-h-0 lg:flex-1">
           {!loading && summary && (
             <>
               <TimeControls
