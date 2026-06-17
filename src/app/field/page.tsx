@@ -131,7 +131,7 @@ export default function FieldPage() {
                 </button>
               </div>
             ) : (
-              <FieldShift sheet={sheet} radiusM={radiusM} />
+              <FieldShift key={`${station}|${shiftId}`} sheet={sheet} radiusM={radiusM} />
             )}
           </div>
         )}
