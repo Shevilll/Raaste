@@ -43,6 +43,7 @@ import {
   X,
   ArrowLeft,
   ArrowRight,
+  Smartphone,
 } from "lucide-react";
 
 const HotspotMap = dynamic(() => import("@/components/HotspotMap"), {
@@ -412,6 +413,13 @@ export default function Dashboard() {
           >
             <ClipboardList className="h-3.5 w-3.5" aria-hidden />
             Beat sheet
+          </Link>
+          <Link
+            href="/field"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/60 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] hover:bg-amber-500/10 lg:py-1"
+          >
+            <Smartphone className="h-3.5 w-3.5" aria-hidden />
+            Field mode
           </Link>
           <button
             onClick={copyShareLink}
